@@ -1,24 +1,19 @@
-const express = require('express');
 const admin = require('firebase-admin');
+admin.initializeApp();
 
-admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
-});
+const db = admin.firestore();
 
-const app = express();
-app.use(express.json());
+app.post('/paddle-webhook', async (req, res) => {
+  const { subscription_id, event_type } = req.body;
 
-app.post('/update-firestore', async (req, res) => {
-  const { userId, subscriptionStatus } = req.body;
-
-  try {
-    const userRef = admin.firestore().collection('users').doc(userId);
-    await userRef.update({ subscriptionStatus });
-    res.status(200).send('Firestore updated successfully');
-  } catch (error) {
-    console.error('Error updating Firestore:', error);
-    res.status(500).send('Failed to update Firestore');
+  if (event_type === 'subscription_cancelled') {
+    const userDoc = await db.collection('users').where('uid', '==', subscription_id).get();
+    
+    if (!userDoc.empty) {
+      const userRef = userDoc.docs[0].ref;
+      await userRef.update({ plan: "lite" });
+    }
   }
-});
 
-app.listen(3000, () => console.log('Server is running on port 3000'));
+  res.sendStatus(200);
+})
