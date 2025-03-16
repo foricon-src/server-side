@@ -5,5 +5,8 @@
         "test": "jest",
         "start": "node script.js"
     },
-    "license": "UNLICENSED"
+    "license": "UNLICENSED",
+    "dependencies": {
+        "firebase-admin": "^13.2.0"
+    }
 }
