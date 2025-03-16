@@ -3,5 +3,7 @@
     "scripts": {
         "build": "babel src -d lib",
         "test": "jest"
-    }
+    },
+    "license": "UNLICENSED",
+    "start": "node script.js"
 }
