@@ -3,6 +3,9 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
+const express = require('express');
+const app = express();
+
 app.post('/paddle-webhook', async (req, res) => {
   const { subscription_id, event_type } = req.body;
 
