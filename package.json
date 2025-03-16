@@ -2,8 +2,8 @@
     "name": "my-package",
     "scripts": {
         "build": "babel src -d lib",
-        "test": "jest"
+        "test": "jest",
+        "start": "node script.js"
     },
     "license": "UNLICENSED",
-    "start": "node script.js"
 }
