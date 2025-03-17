@@ -1,35 +1,47 @@
-const admin = require('firebase-admin');
-admin.initializeApp();
-
-const db = admin.firestore();
-
-const PORT = process.env.PORT || 3000;
-
 const express = require('express');
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+const admin = require('firebase-admin');
+
 const app = express();
+app.use(bodyParser.urlencoded({ extended: true }));
 
-app.post('/paddle-webhook', async (req, res) => {
-  const { custom_data, event_type } = req.body;
-  custom_data = JSON.parse(custom_data);
+admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+    databaseURL: "https://your-firebase-project.firebaseio.com",
+});
 
-  if (event_type === 'subscription_cancelled') {
-    const userDoc = await db.collection('users').where('uid', '==', custom_data.uid).get();
-    
-    if (!userDoc.empty) {
-      const userRef = userDoc.docs[0].ref;
+app.post('/webhook', (req, res) => {
+    const signature = req.headers['paddle-signature'];
+    const payload = req.body;
 
-      try {
-        await userRef.setDoc({
-          plan: 'lite',
-        }, { merge: true })
-      }
-      catch (error) {
-        console.error(error)
-      }
+    const isValid = verifyPaddleSignature(payload, signature);
+    if (!isValid) {
+        return res.status(400).send('Invalid signature');
     }
-  }
 
-  res.sendStatus(200);
+    const { user_id, plan_name, status } = payload;
+
+    // Update Firestore document
+    const db = admin.firestore();
+    const userDoc = db.collection('users').doc(user_id);
+
+    if (status == 'active')
+        userDoc.update({
+            plan: plan_name
+        })
+    else if (status == 'cancelled')
+        userDoc.update({
+            plan: 'lite'
+        })
+
+    res.status(200).send('Webhook processed');
 })
 
-app.listen(PORT, () => console.log(`Server is running on port ${PORT}`))
+function verifyPaddleSignature(payload, signature) {
+    const secret = 'your-paddle-webhook-secret';
+    const hash = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
+    return hash === signature;
+}
+
+app.listen(3000, () => console.log('Server running on port 3000'));
