@@ -17,7 +17,7 @@ console.log('ok')
 app.post('/update-plan', async (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
-
+    console.log(payload, res)
     const isValid = verifyPaddleSignature(payload, signature);
     // if (!isValid) {
     //     return res.status(400).send('Invalid signature');
