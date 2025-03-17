@@ -14,7 +14,7 @@ admin.initializeApp({
 
 console.log('ok')
 
-app.post('/webhook', async (req, res) => {
+app.post('/', async (req, res) => {
     console.log('Payload received:', req.body);
     console.log('Headers received:', req.headers);
     
