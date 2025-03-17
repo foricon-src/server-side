@@ -24,7 +24,7 @@ app.post('/update-plan', async (req, res) => {
     }
 
     const { user_id, plan_name, status } = payload;
-
+    return payload;
     const db = admin.firestore();
     const userDoc = db.collection('users').doc(user_id);
 
