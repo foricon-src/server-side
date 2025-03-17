@@ -22,7 +22,6 @@ app.post('/webhook', (req, res) => {
 
     const { user_id, plan_name, status } = payload;
 
-    // Update Firestore document
     const db = admin.firestore();
     const userDoc = db.collection('users').doc(user_id);
 
@@ -34,7 +33,7 @@ app.post('/webhook', (req, res) => {
         userDoc.update({
             plan: 'lite'
         })
-
+    
     res.status(200).send('Webhook processed');
 })
 
