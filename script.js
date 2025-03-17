@@ -1,16 +1,13 @@
+import { dbFirestore } from '//foricon-src.github.io/foricon-firebase/script.js';
+import { doc, getDoc, setDoc } from '//www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
-const admin = require('firebase-admin');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
-
-admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    databaseURL: '//foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app',
-})
 
 console.log('ok')
 
@@ -24,16 +21,15 @@ app.post('/update-plan', async (req, res) => {
     // }
 
     const { status, custom_data, items } = payload.data;
-    console.log(items)
+    
     const plan = items[0].price.name;
-    const db = admin.firestore();
-    const userDoc = db.collection('users').doc(custom_data.uid);
+    const ref = doc(dbFirestore, 'users', custom_data.uid);
 
-    if (status == 'active') userDoc.update({ plan })
+    if (status == 'active') setDoc(ref, { plan }, { merge: true });
     else if (status == 'cancelled')
-        userDoc.update({
-            plan: 'lite',
-        })
+        setDoc(ref, {
+            plan: 'lite'
+        }, { merge: true });
     
     res.status(200).send('Webhook processed');
 })
