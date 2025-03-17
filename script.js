@@ -15,7 +15,6 @@ admin.initializeApp({
 console.log('ok')
 
 app.post('/update-plan', async (req, res) => {
-    return req;
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
 
@@ -25,6 +24,7 @@ app.post('/update-plan', async (req, res) => {
     }
 
     const { user_id, plan_name, status } = payload;
+    return JSON.stringify(payload);
     const db = admin.firestore();
     const userDoc = db.collection('users').doc(user_id);
 
@@ -41,7 +41,7 @@ app.post('/update-plan', async (req, res) => {
 })
 
 function verifyPaddleSignature(payload, signature) {
-    const secret = 'your-paddle-webhook-secret';
+    const secret = 'pdl_ntfset_01jpj91047a53xze18x26241kt_xA3Jx0rq5ij8C9Gha6+91LXYpMc8I52k';
     const hash = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
     return hash === signature;
 }
