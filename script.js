@@ -18,20 +18,17 @@ app.post('/update-plan', async (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
 
-    return res.status(200).send(JSON.stringify(payload));
     const isValid = verifyPaddleSignature(payload, signature);
     if (!isValid) {
         return res.status(400).send('Invalid signature');
     }
 
-    const { user_id, plan_name, status } = payload;
+    const { status } = payload;
+    const plan = payload.items[0].price.name;
     const db = admin.firestore();
-    const userDoc = db.collection('users').doc(user_id);
+    const userDoc = db.collection('users').doc(payload.custom_data.uid);
 
-    if (status == 'active')
-        userDoc.update({
-            plan: plan_name,
-        })
+    if (status == 'active') userDoc.update({ plan })
     else if (status == 'cancelled')
         userDoc.update({
             plan: 'lite',
