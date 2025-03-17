@@ -17,8 +17,8 @@ console.log('ok')
 app.post('/update-plan', async (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
-    
-    return JSON.stringify(payload);
+
+    return res.status(200).send(JSON.stringify(payload));
     const isValid = verifyPaddleSignature(payload, signature);
     if (!isValid) {
         return res.status(400).send('Invalid signature');
@@ -43,7 +43,7 @@ app.post('/update-plan', async (req, res) => {
 function verifyPaddleSignature(payload, signature) {
     const secret = 'pdl_ntfset_01jpj91047a53xze18x26241kt_xA3Jx0rq5ij8C9Gha6+91LXYpMc8I52k';
     const hash = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
-    return hash === signature;
+    return hash == signature;
 }
 
 app.listen(3000, () => console.log('Server running on port 3000'));
