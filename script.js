@@ -15,42 +15,29 @@ admin.initializeApp({
 console.log('ok')
 
 app.post('/update-plan', async (req, res) => {
-    console.log('Payload received:', req.body);
-    console.log('Headers received:', req.headers);
+    const signature = req.headers['paddle-signature'];
+    const payload = req.body;
+
+    const isValid = verifyPaddleSignature(payload, signature);
+    if (!isValid) {
+        return res.status(400).send('Invalid signature');
+    }
+
+    const { user_id, plan_name, status } = payload;
+
+    const db = admin.firestore();
+    const userDoc = db.collection('users').doc(user_id);
+
+    if (status == 'active')
+        userDoc.update({
+            plan: plan_name,
+        })
+    else if (status == 'cancelled')
+        userDoc.update({
+            plan: 'lite',
+        })
     
-    // const signature = req.headers['paddle-signature'];
-    // const payload = req.body;
-
-    // const isValid = verifyPaddleSignature(payload, signature);
-    // if (!isValid) {
-    //     return res.status(400).send('Invalid signature');
-    // }
-
-    // const { user_id, plan_name, status } = payload;
-
-    // const db = admin.firestore();
-    // const userDoc = db.collection('users').doc(user_id);
-
-    // try {
-    //     console.log('Start: ', status)
-    //     if (status == 'active') {
-    //         console.log(plan_name)
-    //         await userDoc.update({
-    //             plan: plan_name,
-    //         })
-    //     }
-    //     else if (status == 'cancelled') {
-    //         console.log('lite')
-    //         await userDoc.update({
-    //             plan: 'lite',
-    //         })
-    //     }
-    // }
-    // catch (error) {
-    //     console.error(error);
-    // }
-    
-    // res.status(200).send('Webhook processed');
+    res.status(200).send('Webhook processed');
 })
 
 function verifyPaddleSignature(payload, signature) {
