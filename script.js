@@ -24,10 +24,10 @@ app.post('/update-plan', async (req, res) => {
     // }
 
     const { status, custom_data, items } = payload.data;
-    console.log(payload.data)
+    console.log(items)
     const plan = items[0].price.name;
     const db = admin.firestore();
-    const userDoc = db.collection('users').doc(payload.custom_data.uid);
+    const userDoc = db.collection('users').doc(custom_data.uid);
 
     if (status == 'active') userDoc.update({ plan })
     else if (status == 'cancelled')
