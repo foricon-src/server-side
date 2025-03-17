@@ -8,7 +8,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    databaseURL: "https://your-firebase-project.firebaseio.com",
+    databaseURL: "//foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app",
 });
 
 app.post('/webhook', (req, res) => {
