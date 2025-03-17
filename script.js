@@ -9,8 +9,10 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    databaseURL: "//foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app",
-});
+    databaseURL: '//foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app',
+})
+
+console.log('ok')
 
 app.post('/webhook', async (req, res) => {
     const signature = req.headers['paddle-signature'];
@@ -27,6 +29,7 @@ app.post('/webhook', async (req, res) => {
     const userDoc = db.collection('users').doc(user_id);
 
     try {
+        console.log('Start: ', status)
         if (status == 'active') {
             console.log(plan_name)
             await userDoc.update({
@@ -34,7 +37,7 @@ app.post('/webhook', async (req, res) => {
             })
         }
         else if (status == 'cancelled') {
-            console.log("lite")
+            console.log('lite')
             await userDoc.update({
                 plan: 'lite',
             })
