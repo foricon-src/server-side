@@ -1,5 +1,5 @@
-import { dbFirestore } from '//foricon-src.github.io/foricon-firebase/script.js';
-import { doc, getDoc, setDoc } from '//www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
+import { dbFirestore } from 'https://foricon-src.github.io/foricon-firebase/script.js';
+import { doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js';
 
 const express = require('express');
 const bodyParser = require('body-parser');
