@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const e = require('express');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -11,7 +12,7 @@ admin.initializeApp({
     databaseURL: "//foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app",
 });
 
-app.post('/webhook', (req, res) => {
+app.post('/webhook', async (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
 
@@ -25,14 +26,23 @@ app.post('/webhook', (req, res) => {
     const db = admin.firestore();
     const userDoc = db.collection('users').doc(user_id);
 
-    if (status == 'active')
-        userDoc.update({
-            plan: plan_name
-        })
-    else if (status == 'cancelled')
-        userDoc.update({
-            plan: 'lite'
-        })
+    try {
+        if (status == 'active') {
+            console.log(plan_name)
+            await userDoc.update({
+                plan: plan_name,
+            })
+        }
+        else if (status == 'cancelled') {
+            console.log("lite")
+            await userDoc.update({
+                plan: 'lite',
+            })
+        }
+    }
+    catch (error) {
+        console.error(error);
+    }
     
     res.status(200).send('Webhook processed');
 })
