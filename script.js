@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
 admin.initializeApp({
@@ -15,6 +15,9 @@ admin.initializeApp({
 console.log('ok')
 
 app.post('/webhook', async (req, res) => {
+    console.log('Payload received:', req.body);
+    console.log('Headers received:', req.headers);
+    
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
 
