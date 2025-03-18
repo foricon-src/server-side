@@ -2,14 +2,13 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
-const serviceAccount = require('./foricon-database-firebase-adminsdk-quo99-9d8315645e.json');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
   databaseURL: 'https://foricon-database.firebaseio.com'
 })
 
