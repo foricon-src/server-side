@@ -8,9 +8,10 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
 admin.initializeApp({
-  credential: admin.credential.applicationDefault(),//require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
-  databaseURL: 'https://foricon-database.firebaseio.com'
+  credential: admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
+  databaseURL: 'https://foricon-database.firebaseio.com',
 })
+const db = admin.firestore();
 
 app.post('/update-plan', async (req, res) => {
     const signature = req.headers['paddle-signature'];
@@ -24,7 +25,6 @@ app.post('/update-plan', async (req, res) => {
     const { status, custom_data, items } = payload.data;
     
     const plan = items[0].price.name;
-    const db = admin.firestore();
     const userDoc = db.collection('users').doc(custom_data.uid);
 
     if (status == 'active') userDoc.update({ plan })
@@ -36,10 +36,10 @@ app.post('/update-plan', async (req, res) => {
     res.status(200).send('Webhook processed');
 })
 
-function verifyPaddleSignature(payload, signature) {
-    const secret = 'pdl_ntfset_01jpj91047a53xze18x26241kt_xA3Jx0rq5ij8C9Gha6+91LXYpMc8I52k';
-    const hash = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
-    return hash == signature;
-}
+// function verifyPaddleSignature(payload, signature) {
+//     const secret = 'pdl_ntfset_01jpj91047a53xze18x26241kt_xA3Jx0rq5ij8C9Gha6+91LXYpMc8I52k';
+//     const hash = crypto.createHmac('sha256', secret).update(JSON.stringify(payload)).digest('hex');
+//     return hash == signature;
+// }
 
 app.listen(3000, () => console.log('Server running on port 3000'));
