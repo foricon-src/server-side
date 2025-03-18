@@ -9,7 +9,7 @@ app.use(bodyParser.json())
 
 admin.initializeApp()
 const db = admin.firestore();
-console.log(process.env.GOOGLE_APPLICATION_CREDENTIALS)
+console.log(admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)))
 
 app.post('/update-plan', async (req, res) => {
     // const signature = req.headers['paddle-signature'];
