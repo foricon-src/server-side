@@ -2,23 +2,22 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const serviceAccount = require('./foricon-database-firebase-adminsdk-quo99-9d8315645e.json');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
 admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    databaseURL: 'https://foricon-database.firebaseio.com',
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app"
 })
-
-console.log('ok')
 
 app.post('/update-plan', async (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
     
-    const isValid = verifyPaddleSignature(payload, signature);
+    // const isValid = verifyPaddleSignature(payload, signature);
     // if (!isValid) {
     //     return res.status(400).send('Invalid signature');
     // }
