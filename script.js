@@ -9,7 +9,7 @@ app.use(bodyParser.json())
 
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
-    databaseURL: '//foricon-database.firebaseio.com',
+    databaseURL: 'https://foricon-database.firebaseio.com',
 })
 
 console.log('ok')
