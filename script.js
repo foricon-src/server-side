@@ -7,20 +7,11 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
-try {
-    admin.initializeApp({
-      credential: admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
-      databaseURL: 'https://foricon-database.firebaseio.com',
-    });
-    console.log("Successfully.");
-}
-catch (error) {
-    console.error("Firebase initialization error: ", error);
-}
+admin.initializeApp()
 const db = admin.firestore();
 
 app.post('/update-plan', async (req, res) => {
-    const signature = req.headers['paddle-signature'];
+    // const signature = req.headers['paddle-signature'];
     const payload = req.body;
     
     // const isValid = verifyPaddleSignature(payload, signature);
