@@ -2,16 +2,23 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
-const serviceAccount = require('./foricon-database-firebase-adminsdk-quo99-9d8315645e.json');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app'
-})
+const firebaseConfig = {
+    apiKey: "AIzaSyBHxOn0b3FRDBDQZxM-LFYr07GIOXO81sw",
+    authDomain: "foricon-database.firebaseapp.com",
+    databaseURL: "https://foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "foricon-database",
+    storageBucket: "foricon-database.appspot.com",
+    messagingSenderId: "895804546140",
+    appId: "1:895804546140:web:2e737ccdd006d4e8b7da99",
+    measurementId: "G-2620Z04T3Q",
+};
+  
+admin.initializeApp(firebaseConfig);
 
 app.post('/update-plan', async (req, res) => {
     const signature = req.headers['paddle-signature'];
