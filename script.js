@@ -1,24 +1,27 @@
+import { initializeApp } from 'firebase/app';
+import { getDoc, doc, setDoc, getFirestore } from 'firebase/storage';
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
-const admin = require('firebase-admin');
+// const serviceAccount = require('./foricon-database-firebase-adminsdk-quo99-9d8315645e.json');
 
 const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json())
+app.use(bodyParser.json());
 
-const firebaseConfig = {
+const dbFirestore = getFirestore(app);
+
+initializeApp({
     apiKey: "AIzaSyBHxOn0b3FRDBDQZxM-LFYr07GIOXO81sw",
     authDomain: "foricon-database.firebaseapp.com",
-    databaseURL: "https://foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app",
     projectId: "foricon-database",
+    databaseURL: "https://foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app",
     storageBucket: "foricon-database.appspot.com",
     messagingSenderId: "895804546140",
     appId: "1:895804546140:web:2e737ccdd006d4e8b7da99",
-    measurementId: "G-2620Z04T3Q",
-};
-  
-admin.initializeApp(firebaseConfig);
+    measurementId: "G-2620Z04T3Q"
+})
 
 app.post('/update-plan', async (req, res) => {
     const signature = req.headers['paddle-signature'];
@@ -32,14 +35,14 @@ app.post('/update-plan', async (req, res) => {
     const { status, custom_data, items } = payload.data;
     
     const plan = items[0].price.name;
-    const db = admin.firestore();
-    const userDoc = db.collection('users').doc(custom_data.uid);
+    const ref = doc(dbFirestore, 'users', custom_data.uid);
+    // const userDoc = await getDoc(ref);
 
-    if (status == 'active') userDoc.update({ plan })
+    if (status == 'active') setDoc(ref, { plan }, { merge: true })
     else if (status == 'cancelled')
-        userDoc.update({
+        setDoc(ref, {
             plan: 'lite',
-        })
+        }, { merge: true })
     
     res.status(200).send('Webhook processed');
 })
