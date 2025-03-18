@@ -7,10 +7,16 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
-admin.initializeApp({
-  credential: admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
-  databaseURL: 'https://foricon-database.firebaseio.com',
-})
+try {
+    admin.initializeApp({
+      credential: admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
+      databaseURL: 'https://foricon-database.firebaseio.com',
+    });
+    console.log("Successfully.");
+}
+catch (error) {
+    console.error("Firebase initialization error: ", error);
+}
 const db = admin.firestore();
 
 app.post('/update-plan', async (req, res) => {
