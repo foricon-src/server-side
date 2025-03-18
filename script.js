@@ -9,7 +9,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
 admin.initializeApp({
-  credential: admin.credential.cert(),
+  credential: admin.credential.cert(serviceAccount),
   databaseURL: 'https://foricon-database-default-rtdb.asia-southeast1.firebasedatabase.app'
 })
 
