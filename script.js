@@ -8,7 +8,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
 
 admin.initializeApp({
-  credential: admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
+  credential: admin.credential.applicationDefault(),//require(process.env.GOOGLE_APPLICATION_CREDENTIALS)),
   databaseURL: 'https://foricon-database.firebaseio.com'
 })
 
