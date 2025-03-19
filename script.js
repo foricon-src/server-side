@@ -4,12 +4,13 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.urlencoded());
 app.use(bodyParser.json())
 
-admin.initializeApp()
+admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
+})
 const db = admin.firestore();
-console.log(admin.credential.cert(require(process.env.GOOGLE_APPLICATION_CREDENTIALS)))
 
 app.post('/update-plan', async (req, res) => {
     // const signature = req.headers['paddle-signature'];
@@ -21,10 +22,10 @@ app.post('/update-plan', async (req, res) => {
     // }
 
     const { status, custom_data, items } = payload.data;
-    
-    const plan = items[0].price.name;
+    const { name } = items[0].price;
+    const plan = name[0].toLowerCase() + name.substr(1).replace(' ', '');
     const userDoc = db.collection('users').doc(custom_data.uid);
-    console.log(plan)
+    
     if (status == 'active') userDoc.update({ plan })
     else if (status == 'cancelled')
         userDoc.update({
