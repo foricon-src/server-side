@@ -18,13 +18,12 @@ const db = admin.firestore();
 app.post('/update-plan', (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
-    
+    console.log(payload)
     if (verifyPaddleSignature(payload, signature)) {
         const { status, custom_data, items } = payload.data;
         const { name } = items[0].price;
         const plan = name[0].toLowerCase() + name.substr(1).replace(' ', '');
         const userDoc = db.collection('users').doc(custom_data.uid);
-        
         if (status == 'active') userDoc.update({ plan })
         else if (status == 'cancelled')
             userDoc.update({
@@ -80,7 +79,7 @@ app.post('/cancel-subscription', async (req, res) => {
     }
 })
 
-function verifyPaddleSignature(rawBody, signatureHeader, secretKey) {
+function verifyPaddleSignature(rawBody, signatureHeader) {
     const signatureParts = signatureHeader.split(';');
     const timestampPart = signatureParts.find(part => part.startsWith('ts='));
     const h1Part = signatureParts.find(part => part.startsWith('h1='));
