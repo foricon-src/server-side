@@ -22,15 +22,23 @@ app.post('/update-plan', (req, res) => {
     const payload = req.body;
     
     if (verifyPaddleSignature(payload, signature)) {
+        const date = new Date();
         const { status, custom_data, items } = payload.data;
         const { name } = items[0].price;
         const plan = name[0].toLowerCase() + name.substr(1).replace(' ', '');
         const userDoc = db.collection('users').doc(custom_data.uid);
-        if (status == 'active') userDoc.update({ plan })
-        else if (status == 'cancelled')
-            userDoc.update({
-                plan: 'lite',
-            })
+        userDoc.set({
+            plan: status == 'active' ? plan : 'lite',
+            pageview: {
+                count: 0,
+                start: {
+                    day: date.getDate(),
+                    month: date.getMonth(),
+                    year: date.getFullYear(),
+                    timezone: date.getTimezoneOffset() / 60,
+                }
+            }
+        }, { merge: true })
         
         res.status(200).send('Webhook processed');
     }
