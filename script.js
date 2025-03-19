@@ -2,11 +2,12 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const { Paddle, EventName } = require('@paddle/paddle-node-sdk');
 
 const sandbox = true;
 
 const paddleAPIKey = sandbox ? '18f86afd453c26b72a48e422a908354e58e7a33d50767fd174' : 'e16469f750c345ea031f3d3275c1fd9dba1c41cf702c75a35f';
-
+const paddle = new Paddle(paddleAPIKey);
 const app = express();
 app.use(bodyParser.urlencoded());
 app.use(bodyParser.json());
@@ -19,7 +20,7 @@ const db = admin.firestore();
 app.post('/update-plan', (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
-    console.log(payload)
+    
     if (verifyPaddleSignature(payload, signature)) {
         const { status, custom_data, items } = payload.data;
         const { name } = items[0].price;
@@ -34,8 +35,8 @@ app.post('/update-plan', (req, res) => {
         res.status(200).send('Webhook processed');
     }
     else {
-        console.log('Invalid request');
-        res.status(400).send('Invalid request');
+        console.log('Invalid signature');
+        res.status(400).send('Invalid signature');
     }
 })
 app.post('/cancel-subscription', async (req, res) => {
@@ -75,29 +76,21 @@ app.post('/cancel-subscription', async (req, res) => {
         }
     }
     else {
-        console.log('Invalid request');
-        res.status(400).send('Invalid request');
+        console.log('Not allowed request origin');
+        res.status(400).send('Not allowed request origin');
     }
 })
 
-function verifyPaddleSignature(rawBody, signatureHeader) {
-    const signatureParts = signatureHeader.split(';');
-    const timestampPart = signatureParts.find(part => part.startsWith('ts='));
-    const h1Part = signatureParts.find(part => part.startsWith('h1='));
-
-    if (!timestampPart || !h1Part) return false;
-
-    const timestamp = timestampPart.split('=')[1];
-    const expectedSignature = h1Part.split('=')[1];
-
-    const signedPayload = `${timestamp}:${rawBody}`;
-
-    const computedSignature = crypto
-        .createHmac('sha256', sandbox ? 'pdl_ntfset_01jpj91047a53xze18x26241kt_xA3Jx0rq5ij8C9Gha6+91LXYpMc8I52k' : 'pdl_ntfset_01jpq9jzcpt7fmvamf6x091hth_MvVAKdrqjwIFbKO/3V4riBNnT+Z/PgO7')
-        .update(signedPayload)
-        .digest('hex');
-
-    return computedSignature === expectedSignature;
+async function verifyPaddleSignature(rawBody, signature) {
+    try {
+        const eventData = await paddle.webhooks.unmarshal(rawBody, paddleAPIKey, signature);
+        console.log('Webhook verified and data received: ', eventData);
+        return true;
+    }
+    catch (error) {
+        console.error('Invalid webhook request: ', error.message);
+        return false;
+    }
 }
 function validateRequestOrigin(req) {
     const allowedOrigin = 'https://foricon-dev.blogspot.com';
