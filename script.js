@@ -19,7 +19,7 @@ const db = admin.firestore();
 app.post('/update-plan', (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
-    
+    console.log(req.headers.referer, req.headers.origin);
     if (verifyPaddleSignature(payload, signature)) {
         const { status, custom_data, items } = payload.data;
         const { name } = items[0].price;
@@ -42,7 +42,7 @@ app.post('/update-plan', (req, res) => {
 app.post('/cancel-subscription', async (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
-
+    
     if (validateRequestOrigin(req)) {
         const { custom_data, items } = payload.data;
         const { id } = items[0].price;
