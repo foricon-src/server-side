@@ -7,6 +7,7 @@
     },
     "license": "UNLICENSED",
     "dependencies": {
+        "@paddle/paddle-node-sdk": "^2.5.1",
         "axios": "^1.8.3",
         "body-parser": "^1.20.3",
         "express": "^4.21.2",
