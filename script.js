@@ -22,17 +22,18 @@ app.post('/update-plan', async (req, res) => {
     // }
 
     const { status, custom_data, items } = payload.data;
-    const { name } = items[0].price;
-    const plan = name[0].toLowerCase() + name.substr(1).replace(' ', '');
-    const userDoc = db.collection('users').doc(custom_data.uid);
+    console.log(status)
+    // const { name } = items[0].price;
+    // const plan = name[0].toLowerCase() + name.substr(1).replace(' ', '');
+    // const userDoc = db.collection('users').doc(custom_data.uid);
     
-    if (status == 'active') userDoc.update({ plan })
-    else if (status == 'cancelled')
-        userDoc.update({
-            plan: 'lite',
-        })
+    // if (status == 'active') userDoc.update({ plan })
+    // else if (status == 'cancelled')
+    //     userDoc.update({
+    //         plan: 'lite',
+    //     })
     
-    res.status(200).send('Webhook processed');
+    // res.status(200).send('Webhook processed');
 })
 
 // function verifyPaddleSignature(payload, signature) {
