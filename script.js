@@ -26,22 +26,21 @@ const db = admin.firestore();
 
 const fetch = require('node-fetch');
 
-async function getActiveSubscription(customerEmail) {
+async function getActiveSubscription(email) {
     const response = await fetch('https://vendors.paddle.com/api/2.0/subscription/users', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            vendor_id: sandbox ? '28722' : '220972',
-            vendor_auth_code: sandbox ? '18f86afd453c26b72a48e422a908354e58e7a33d50767fd174' : 'e16469f750c345ea031f3d3275c1fd9dba1c41cf702c75a35f',
-            email: customerEmail,
+            vendor_id: sandbox ? process.env.SANBOX_VENDOR_ID : process.env.VENDOR_ID,
+            vendor_auth_code: sandbox ? process.env.SANBOX_VENDOR_AUTH_CODE : process.env.VENDOR_AUTH_CODE,
         }),
-    });
+    })
   
     if (response.ok) {
         const data = await response.json();
-        const activeSubscription = data.response.find(subscription => subscription.state === 'active');
+        const activeSubscription = data.response.find(subscription => subscription.user_email == email && subscription.state == 'active');
   
         if (activeSubscription) {
             console.log('Active Subscription ID:', activeSubscription.subscription_id);
