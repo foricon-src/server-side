@@ -48,51 +48,39 @@ app.post('/update-plan', (req, res) => {
     }
 })
 app.post('/cancel-subscription', async (req, res) => {
-    const signature = req.headers['paddle-signature'];
-    const payload = req.body;
-    
-    if (validateRequestOrigin(req)) {
-        const { custom_data, items } = payload.data;
-        const { id } = items[0].price;
+    const { priceId, uid } = req.body;
 
-        try {
-            const response = await fetch(`https://api.paddle.com/subscriptions/${id}/cancel`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${paddleAPIKey}`,
-                },
-                body: JSON.stringify({
-                    effective_from: custom_data.immediately ? 'immediately' : 'next_billing_period',
-                }),
-            })
+    const userDoc = db.collection('users').doc(uid);
     
-            const result = await response.json();
-    
-            if (response.ok) {
-                console.log('Subscription canceled successfully: ', result);
-                res.status(200).send('Subscription canceled successfully');
-            }
-            else {
-                console.error('Error canceling subscription: ', result);
-                res.status(400).send('Error canceling subscription');
-            }
+    try {
+        const response = await paddle.subscriptions.cancel({
+            subscription_id: priceId,
+        })
+
+        if (response.success) {
+            await userDoc.set({
+                plan: 'lite',
+                pageview: {
+                    count: 0,
+                }
+            }, { merge: true });
+
+            res.status(200).send('Subscription canceled successfully');
         }
-        catch (error) {
-            console.error('Error calling Paddle API: ', error);
-            res.status(500).send('Internal server error');
+        else {
+            res.status(500).send('Failed to cancel subscription');
         }
     }
-    else {
-        console.log('Not allowed request origin');
-        res.status(400).send('Not allowed request origin');
+    catch (error) {
+        console.error('Error canceling subscription: ', error.message);
+        res.status(500).send('Internal server error');
     }
 })
 
 async function verifyPaddleSignature(rawBody, signature) {
     try {
-        const eventData = await paddle.webhooks.unmarshal(rawBody, paddleAPIKey, signature);
-        console.log('Webhook verified and data received: ', eventData);
+        await paddle.webhooks.unmarshal(rawBody, paddleAPIKey, signature);
+        console.log('Webhook verified and data received');
         return true;
     }
     catch (error) {
