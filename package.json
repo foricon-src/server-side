@@ -8,7 +8,7 @@
     "license": "UNLICENSED",
     "dependencies": {
         "@paddle/paddle-node-sdk": "^2.5.1",
-        "axios": "^1.8.3",
+        "axios": "^1.8.4",
         "body-parser": "^1.20.3",
         "cors": "^2.8.5",
         "express": "^4.21.2",
