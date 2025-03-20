@@ -26,15 +26,6 @@ const db = admin.firestore();
 
 const fetch = require('node-fetch');
 
-async function getActiveSubscription(email) {
-    try {
-    }
-    catch (error) {
-        console.error('Error fetching subscriptions: ', error);
-        res.status(500).send('Internal server error')
-    }
-}
-
 app.post('/update-plan', (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
@@ -76,25 +67,25 @@ app.post('/cancel-subscription', async (req, res) => {
             (sub) => sub.customer.email == email && sub.status == "active"
         )
 console.log(subscription)
-        // try {
-        //     const response = await paddle.subscriptions.cancel(subscription.);
+        try {
+            // const response = await paddle.subscriptions.cancel(subscription.);
     
-        //     if (response.success) {
-        //         await userDoc.set({
-        //             plan: 'lite',
-        //             pageview: {
-        //                 count: 0,
-        //             }
-        //         }, { merge: true });
+            // if (response.success) {
+            //     await userDoc.set({
+            //         plan: 'lite',
+            //         pageview: {
+            //             count: 0,
+            //         }
+            //     }, { merge: true });
     
-        //         res.status(200).send('Subscription canceled successfully');
-        //     }
-        //     else res.status(500).send('Failed to cancel subscription');
-        // }
-        // catch (error) {
-        //     console.error('Error canceling subscription: ', error);
-        //     res.status(500).send('Internal server error');
-        // }
+            //     res.status(200).send('Subscription canceled successfully');
+            // }
+            // else res.status(500).send('Failed to cancel subscription');
+        }
+        catch (error) {
+            console.error('Error canceling subscription: ', error);
+            res.status(500).send('Internal server error');
+        }
     }
     else {
         console.log('Unauthorized request has been blocked');
