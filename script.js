@@ -27,33 +27,11 @@ const db = admin.firestore();
 const fetch = require('node-fetch');
 
 async function getActiveSubscription(email) {
-    const response = await fetch('https://vendors.paddle.com/api/2.0/subscription/users', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            vendor_id: sandbox ? process.env.SANBOX_VENDOR_ID : process.env.VENDOR_ID,
-            vendor_auth_code: sandbox ? process.env.SANBOX_VENDOR_AUTH_CODE : process.env.VENDOR_AUTH_CODE,
-        }),
-    })
-  
-    if (response.ok) {
-        const data = await response.json();
-        const activeSubscription = data.response.find(subscription => subscription.user_email == email && subscription.state == 'active');
-  
-        if (activeSubscription) {
-            console.log('Active Subscription ID:', activeSubscription.subscription_id);
-            return activeSubscription.subscription_id;
-        }
-        else {
-            console.log('No active subscription found for the user.');
-            return null;
-        }
+    try {
     }
-    else {
-        console.error('Failed to fetch subscriptions:', await response.text());
-        return null;
+    catch (error) {
+        console.error('Error fetching subscriptions: ', error);
+        res.status(500).send('Internal server error')
     }
 }
 
@@ -92,8 +70,14 @@ app.post('/cancel-subscription', async (req, res) => {
 
     if (validateRequestOrigin(req)) {
         const userDoc = await db.collection('users').doc(uid).get();
+
+        const subscriptions = paddle.subscriptions.list();
+        const subscription = subscriptions.data.find(
+            (sub) => sub.customer.email == email && sub.status == "active"
+        )
+
         try {
-            const response = await paddle.subscriptions.cancel(getActiveSubscription(email));
+            const response = await paddle.subscriptions.cancel(subscription);
     
             if (response.success) {
                 await userDoc.set({
@@ -108,7 +92,7 @@ app.post('/cancel-subscription', async (req, res) => {
             else res.status(500).send('Failed to cancel subscription');
         }
         catch (error) {
-            console.error('- Error canceling subscription -\n', error);
+            console.error('Error canceling subscription: ', error);
             res.status(500).send('Internal server error');
         }
     }
