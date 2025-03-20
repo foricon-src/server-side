@@ -63,24 +63,8 @@ app.post('/cancel-subscription', async (req, res) => {
         const userDocRef = db.collection('users').doc(uid);
         const userDoc = await userDocRef.get();
 
-        // const subscriptions = paddle.subscriptions.list()
-        // console.log('Subscriptions: ', subscriptions.data);
-
-        const axios = require('axios');
-        const response = await axios.post(
-            'https://vendors.paddle.com/api/2.0/subscription/users',
-            new URLSearchParams({
-                vendor_id: process.env[sandbox ? 'SANDBOX_VENDOR_ID' : 'VENDOR_ID'],
-                vendor_auth_code: process.env[sandbox ? 'SANDBOX_VENDOR_AUTH_CODE' : 'VENDOR_AUTH_CODE'],
-            }),
-            {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-            }
-        );
-
-        console.log(response.data);
+        const subscriptions = paddle.subscriptions.list()
+        console.log('Subscriptions: ', subscriptions.data);
 
     // console.log('Subscription: ', subscription)
             // try {
