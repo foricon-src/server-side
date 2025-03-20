@@ -63,13 +63,15 @@ app.post('/cancel-subscription', async (req, res) => {
         const userDocRef = db.collection('users').doc(uid);
         const userDoc = await userDocRef.get();
 
-        const subscriptions = paddle.subscriptions.list();
-        const subscription = subscriptions.data.find(
-            (sub) => sub.customer.email == email && sub.status == "active"
-        )
+        const customers = paddle.customers.list({ email });
+        if (!customers.length) return;
+        const subscriptions = paddle.subscriptions.list({
+            customerId: customers[0].id,
+            status: 'active',
+        })
         console.log('Subscriptions: ', subscriptions)
-console.log('Subscription: ', subscription)
-        try {
+// console.log('Subscription: ', subscription)
+        // try {
             // const response = await paddle.subscriptions.cancel(subscription.);
     
             // if (response.success) {
@@ -83,11 +85,11 @@ console.log('Subscription: ', subscription)
             //     res.status(200).send('Subscription canceled successfully');
             // }
             // else res.status(500).send('Failed to cancel subscription');
-        }
-        catch (error) {
-            console.error('Error canceling subscription: ', error);
-            res.status(500).send('Internal server error');
-        }
+        // }
+        // catch (error) {
+        //     console.error('Error canceling subscription: ', error);
+        //     res.status(500).send('Internal server error');
+        // }
     }
     else {
         console.log('Unauthorized request has been blocked');
