@@ -60,7 +60,8 @@ app.post('/cancel-subscription', async (req, res) => {
     const { email, uid } = req.body;
 
     if (validateRequestOrigin(req)) {
-        const userDoc = await db.collection('users').doc(uid).get();
+        const userDocRef = db.collection('users').doc(uid);
+        const userDoc = await userDocRef.get();
 
         const subscriptions = paddle.subscriptions.list();
         const subscription = subscriptions.data.find(
@@ -71,7 +72,7 @@ console.log(subscription)
             // const response = await paddle.subscriptions.cancel(subscription.);
     
             // if (response.success) {
-            //     await userDoc.set({
+            //     await userDocRef.set({
             //         plan: 'lite',
             //         pageview: {
             //             count: 0,
