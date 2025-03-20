@@ -24,6 +24,40 @@ admin.initializeApp({
 })
 const db = admin.firestore();
 
+const fetch = require('node-fetch');
+
+async function getActiveSubscription(customerEmail) {
+    const response = await fetch('https://vendors.paddle.com/api/2.0/subscription/users', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            vendor_id: sandbox ? '28722' : '220972',
+            vendor_auth_code: sandbox ? '18f86afd453c26b72a48e422a908354e58e7a33d50767fd174' : 'e16469f750c345ea031f3d3275c1fd9dba1c41cf702c75a35f',
+            email: customerEmail,
+        }),
+    });
+  
+    if (response.ok) {
+        const data = await response.json();
+        const activeSubscription = data.response.find(subscription => subscription.state === 'active');
+  
+        if (activeSubscription) {
+            console.log('Active Subscription ID:', activeSubscription.subscription_id);
+            return activeSubscription.subscription_id;
+        }
+        else {
+            console.log('No active subscription found for the user.');
+            return null;
+        }
+    }
+    else {
+        console.error('Failed to fetch subscriptions:', await response.text());
+        return null;
+    }
+}
+
 app.post('/update-plan', (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
@@ -51,34 +85,37 @@ app.post('/update-plan', (req, res) => {
     }
     else {
         console.log('Invalid signature');
-        res.status(400).send('Invalid signature');
+        res.status(403).send('Invalid signature');
     }
 })
 app.post('/cancel-subscription', async (req, res) => {
-    const { priceId, uid } = req.body;
+    const { email, uid } = req.body;
 
-    const userDoc = await db.collection('users').doc(uid).get();
+    if (validateRequestOrigin(req)) {
+        const userDoc = await db.collection('users').doc(uid).get();
+        try {
+            const response = await paddle.subscriptions.cancel(getActiveSubscription(email));
     
-    try {
-        const response = await paddle.subscriptions.cancel({
-            subscription_id: priceId,
-        })
-
-        if (response.success) {
-            await userDoc.set({
-                plan: 'lite',
-                pageview: {
-                    count: 0,
-                }
-            }, { merge: true });
-
-            res.status(200).send('Subscription canceled successfully');
+            if (response.success) {
+                await userDoc.set({
+                    plan: 'lite',
+                    pageview: {
+                        count: 0,
+                    }
+                }, { merge: true });
+    
+                res.status(200).send('Subscription canceled successfully');
+            }
+            else res.status(500).send('Failed to cancel subscription');
         }
-        else res.status(500).send('Failed to cancel subscription');
+        catch (error) {
+            console.error('Error canceling subscription: ', error.message);
+            res.status(500).send('Internal server error');
+        }
     }
-    catch (error) {
-        console.error('Error canceling subscription: ', error.message);
-        res.status(500).send('Internal server error');
+    else {
+        console.log('Unauthorized request has been blocked');
+        res.status(403).send('Request is forbidden');
     }
 })
 
