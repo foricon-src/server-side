@@ -63,13 +63,10 @@ app.post('/cancel-subscription', async (req, res) => {
         const userDocRef = db.collection('users').doc(uid);
         const userDoc = await userDocRef.get();
 
-        const customers = paddle.customers.list({ email });
-        if (customers.length) {
-            const subscriptions = paddle.subscriptions.list({
-                customerId: customers[0].id,
-                status: 'active',
-            })
-            console.log('Subscriptions: ', subscriptions.data)
+        const subscriptions = paddle.subscriptions.list()
+        for (let item of subscriptions.data) {
+            console.log('Item: ', item)
+        }
     // console.log('Subscription: ', subscription)
             // try {
                 // const response = await paddle.subscriptions.cancel(subscription.);
@@ -90,11 +87,6 @@ app.post('/cancel-subscription', async (req, res) => {
             //     console.error('Error canceling subscription: ', error);
             //     res.status(500).send('Internal server error');
             // }
-        }
-        else {
-            console.log('No customer found');
-            return;
-        }
     }
     else {
         console.log('Unauthorized request has been blocked');
