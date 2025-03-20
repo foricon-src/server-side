@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 const cors = require('cors')
 const { Paddle } = require('@paddle/paddle-node-sdk');
+const fetch = require('node-fetch');
 
 const sandbox = true;
 
@@ -24,7 +25,6 @@ admin.initializeApp({
 })
 const db = admin.firestore();
 
-const fetch = require('node-fetch');
 
 app.post('/update-plan', (req, res) => {
     const signature = req.headers['paddle-signature'];
@@ -63,10 +63,33 @@ app.post('/cancel-subscription', async (req, res) => {
         const userDocRef = db.collection('users').doc(uid);
         const userDoc = await userDocRef.get();
 
-        const subscriptions = paddle.subscriptions.list()
-        for (let item of subscriptions.data) {
-            console.log('Item: ', item)
-        }
+        // const subscriptions = paddle.subscriptions.list()
+
+        const response = await fetch('https://vendors.paddle.com/api/2.0/subscription/users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                vendor_id: sandbox ? process.env.SANBOX_VENDOR_ID : process.env.VENDOR_ID,
+                vendor_auth_code: sandbox ? process.env.SANBOX_VENDOR_AUTH_CODE : process.env.VENDOR_AUTH_CODE,
+                email,
+            }),
+        })
+
+        console.log(response);
+
+        const result = await response.json();
+
+        console.log(result);
+
+        // if (result.success) {
+        //     const activeSubscription = result.response.find(
+        //         sub => sub.state == 'active'
+        //     )
+        //     console.log(activeSubscription);
+        // }
+        // else console.error('Error: ', result.error.message);
     // console.log('Subscription: ', subscription)
             // try {
                 // const response = await paddle.subscriptions.cancel(subscription.);
