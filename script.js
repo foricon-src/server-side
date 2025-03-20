@@ -57,7 +57,7 @@ app.post('/update-plan', (req, res) => {
 app.post('/cancel-subscription', async (req, res) => {
     const { priceId, uid } = req.body;
 
-    const userDoc = db.collection('users').doc(uid);
+    const userDoc = await db.collection('users').doc(uid).get();
     
     try {
         const response = await paddle.subscriptions.cancel({
@@ -74,9 +74,7 @@ app.post('/cancel-subscription', async (req, res) => {
 
             res.status(200).send('Subscription canceled successfully');
         }
-        else {
-            res.status(500).send('Failed to cancel subscription');
-        }
+        else res.status(500).send('Failed to cancel subscription');
     }
     catch (error) {
         console.error('Error canceling subscription: ', error.message);
