@@ -65,7 +65,7 @@ app.post('/cancel-subscription', async (req, res) => {
 
         // const subscriptions = paddle.subscriptions.list()
 
-        const response = await fetch('https://vendors.paddle.com/api/2.0/subscription/users', {
+        const response = await fetch('https://api.paddle.com/subscriptions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
