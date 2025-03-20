@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const crypto = require('crypto');
 const admin = require('firebase-admin');
+const cors = require('cors')
 const { Paddle } = require('@paddle/paddle-node-sdk');
 
 const sandbox = true;
@@ -11,6 +12,12 @@ const paddle = new Paddle(paddleAPIKey);
 const app = express();
 app.use(bodyParser.urlencoded());
 app.use(bodyParser.json());
+
+app.use(cors({
+    origin: 'https://foricon-dev.blogspot.com',
+    headers: ['Content-Type'],
+    credentials: true,
+}))
 
 admin.initializeApp({
     credential: admin.credential.applicationDefault(),
