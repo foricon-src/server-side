@@ -69,7 +69,7 @@ app.post('/cancel-subscription', async (req, res) => {
                 customerId: customers[0].id,
                 status: 'active',
             })
-            console.log('Subscriptions: ', subscriptions)
+            console.log('Subscriptions: ', subscriptions.data)
     // console.log('Subscription: ', subscription)
             // try {
                 // const response = await paddle.subscriptions.cancel(subscription.);
