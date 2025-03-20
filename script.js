@@ -64,32 +64,37 @@ app.post('/cancel-subscription', async (req, res) => {
         const userDoc = await userDocRef.get();
 
         const customers = paddle.customers.list({ email });
-        if (!customers.length) return;
-        const subscriptions = paddle.subscriptions.list({
-            customerId: customers[0].id,
-            status: 'active',
-        })
-        console.log('Subscriptions: ', subscriptions)
-// console.log('Subscription: ', subscription)
-        // try {
-            // const response = await paddle.subscriptions.cancel(subscription.);
-    
-            // if (response.success) {
-            //     await userDocRef.set({
-            //         plan: 'lite',
-            //         pageview: {
-            //             count: 0,
-            //         }
-            //     }, { merge: true });
-    
-            //     res.status(200).send('Subscription canceled successfully');
+        if (customers.length) {
+            const subscriptions = paddle.subscriptions.list({
+                customerId: customers[0].id,
+                status: 'active',
+            })
+            console.log('Subscriptions: ', subscriptions)
+    // console.log('Subscription: ', subscription)
+            // try {
+                // const response = await paddle.subscriptions.cancel(subscription.);
+        
+                // if (response.success) {
+                //     await userDocRef.set({
+                //         plan: 'lite',
+                //         pageview: {
+                //             count: 0,
+                //         }
+                //     }, { merge: true });
+        
+                //     res.status(200).send('Subscription canceled successfully');
+                // }
+                // else res.status(500).send('Failed to cancel subscription');
             // }
-            // else res.status(500).send('Failed to cancel subscription');
-        // }
-        // catch (error) {
-        //     console.error('Error canceling subscription: ', error);
-        //     res.status(500).send('Internal server error');
-        // }
+            // catch (error) {
+            //     console.error('Error canceling subscription: ', error);
+            //     res.status(500).send('Internal server error');
+            // }
+        }
+        else {
+            console.log('No customer found');
+            return;
+        }
     }
     else {
         console.log('Unauthorized request has been blocked');
