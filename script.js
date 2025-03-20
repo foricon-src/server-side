@@ -109,7 +109,7 @@ app.post('/cancel-subscription', async (req, res) => {
             else res.status(500).send('Failed to cancel subscription');
         }
         catch (error) {
-            console.error('Error canceling subscription: ', error.message);
+            console.error('- Error canceling subscription -\n', error);
             res.status(500).send('Internal server error');
         }
     }
