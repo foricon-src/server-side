@@ -76,7 +76,7 @@ app.post('/cancel-subscription', async (req, res) => {
           
             return allSubscriptions;
         }
-        console.log('Subscriptions: ', fetchAllSubscriptions);
+        console.log('Subscriptions: ', fetchAllSubscriptions());
 
     // console.log('Subscription: ', subscription)
             // try {
