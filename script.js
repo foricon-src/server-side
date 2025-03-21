@@ -96,9 +96,9 @@ app.post('/cancel-subscription', async (req, res) => {
     }
 })
 
-async function verifyPaddleSignature(rawBody, signature) {
+async function verifyPaddleSignature(body, signature) {
     try {
-        await paddle.webhooks.unmarshal(rawBody, paddleAPIKey, signature);
+        await paddle.webhooks.unmarshal(JSON.stringify(body), paddleAPIKey, signature);
         console.log('Webhook verified and data received');
         return true;
     }
