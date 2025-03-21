@@ -73,6 +73,7 @@ app.post('/cancel-subscription', async (req, res) => {
                 const response = paddle.subscriptions.list({ nextLink });
                 allSubscriptions = allSubscriptions.concat(response.data);
                 nextLink = response.nextLink;
+                console.log(response)
             } while (nextLink);
           
             return allSubscriptions;
