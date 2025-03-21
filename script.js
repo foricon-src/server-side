@@ -28,27 +28,31 @@ const db = admin.firestore();
 
 const fetch = require('node-fetch');
 
+function getObj() {
+    const date = new Date();
+    return {
+        count: 0,
+        start: {
+            day: date.getDate(),
+            month: date.getMonth(),
+            year: date.getFullYear(),
+            timezone: date.getTimezoneOffset() / 60,
+        }
+    }
+}
+
 app.post('/update-plan', (req, res) => {
     const signature = req.headers['paddle-signature'];
     const payload = req.body;
     
     if (verifyPaddleSignature(payload, signature)) {
-        const date = new Date();
         const { status, custom_data, items } = payload.data;
         const { name } = items[0].price;
         const plan = name[0].toLowerCase() + name.substr(1).replace(' ', '');
         const userDoc = db.collection('users').doc(custom_data.uid);
         userDoc.set({
             plan: status == 'active' ? plan : 'lite',
-            pageview: {
-                count: 0,
-                start: {
-                    day: date.getDate(),
-                    month: date.getMonth(),
-                    year: date.getFullYear(),
-                    timezone: date.getTimezoneOffset() / 60,
-                }
-            }
+            pageview: getObj(),
         }, { merge: true })
         
         res.status(200).send('Webhook processed');
@@ -59,36 +63,32 @@ app.post('/update-plan', (req, res) => {
     }
 })
 app.post('/cancel-subscription', async (req, res) => {
-    const { uid, sid } = req.body;
+    const { uid } = req.body;
 
     if (validateRequestOrigin(req)) {
         const userDocRef = db.collection('users').doc(uid);
         const userDoc = await userDocRef.get();
 
-        const subscriptions = paddle.subscriptions.get(sid);
-        console.log(subscriptions)
-        // console.log('Subscriptions: ', fetchAllSubscriptions());
-
-    // console.log('Subscription: ', subscription)
-            // try {
-                // const response = await paddle.subscriptions.cancel(subscription.);
+        const transaction = await paddle.transactions.get(userDoc.data().tid);
         
-                // if (response.success) {
-                //     await userDocRef.set({
-                //         plan: 'lite',
-                //         pageview: {
-                //             count: 0,
-                //         }
-                //     }, { merge: true });
-        
-                //     res.status(200).send('Subscription canceled successfully');
-                // }
-                // else res.status(500).send('Failed to cancel subscription');
-            // }
-            // catch (error) {
-            //     console.error('Error canceling subscription: ', error);
-            //     res.status(500).send('Internal server error');
-            // }
+        try {
+            const response = await paddle.subscriptions.cancel(transaction.subscriptionId);
+            
+            if (response.success) {
+                await userDocRef.set({
+                    tid: null,
+                    plan: 'lite',
+                    pageview: getObj(),
+                }, { merge: true });
+                
+                res.status(200).send('Subscription canceled successfully');
+            }
+            else res.status(500).send('Failed to cancel subscription');
+        }
+        catch (error) {
+            console.error('Error canceling subscription: ', error);
+            res.status(500).send('Internal server error');
+        }
     }
     else {
         console.log('Unauthorized request has been blocked');
