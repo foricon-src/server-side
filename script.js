@@ -62,8 +62,8 @@ app.post('/cancel-subscription', async (req, res) => {
     if (validateRequestOrigin(req)) {
         const userDocRef = db.collection('users').doc(uid);
         const userDoc = await userDocRef.get();
-        try {
-        const subscriptions = await paddle.subscriptions.list();
+
+        const subscriptions = paddle.subscriptions.list();
         console.log(subscriptions)
         function fetchAllSubscriptions() {
             let allSubscriptions = [];
@@ -79,8 +79,6 @@ app.post('/cancel-subscription', async (req, res) => {
             return allSubscriptions;
         }
         console.log('Subscriptions: ', fetchAllSubscriptions());
-        }
-        catch (error) {console.error(error)}
 
     // console.log('Subscription: ', subscription)
             // try {
