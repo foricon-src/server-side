@@ -10,7 +10,7 @@ const sandbox = true;
 const paddleAPIKey = sandbox ? '18f86afd453c26b72a48e422a908354e58e7a33d50767fd174' : 'e16469f750c345ea031f3d3275c1fd9dba1c41cf702c75a35f';
 const paddle = new Paddle(paddleAPIKey);
 const app = express();
-app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 app.use(cors({
@@ -62,8 +62,9 @@ app.post('/cancel-subscription', async (req, res) => {
     if (validateRequestOrigin(req)) {
         const userDocRef = db.collection('users').doc(uid);
         const userDoc = await userDocRef.get();
-
-        const subscriptions = paddle.subscriptions.list();
+        try {
+        const subscriptions = await paddle.subscriptions.list();
+        console.log(subscriptions)
         function fetchAllSubscriptions() {
             let allSubscriptions = [];
             let nextLink = null;
@@ -77,6 +78,8 @@ app.post('/cancel-subscription', async (req, res) => {
             return allSubscriptions;
         }
         console.log('Subscriptions: ', fetchAllSubscriptions());
+        }
+        catch (error) {console.error(error)}
 
     // console.log('Subscription: ', subscription)
             // try {
