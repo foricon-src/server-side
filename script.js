@@ -64,12 +64,12 @@ app.post('/cancel-subscription', async (req, res) => {
         const userDoc = await userDocRef.get();
 
         const subscriptions = paddle.subscriptions.list();
-        async function fetchAllSubscriptions() {
+        function fetchAllSubscriptions() {
             let allSubscriptions = [];
             let nextLink = null;
           
             do {
-                const response = await paddle.subscriptions.list({ nextLink });
+                const response = paddle.subscriptions.list({ nextLink });
                 allSubscriptions = allSubscriptions.concat(response.data);
                 nextLink = response.nextLink;
             } while (nextLink);
