@@ -65,20 +65,7 @@ app.post('/cancel-subscription', async (req, res) => {
 
         const subscriptions = paddle.subscriptions.list();
         console.log(subscriptions)
-        function fetchAllSubscriptions() {
-            let allSubscriptions = [];
-            let nextLink = null;
-          
-            do {
-                const response = paddle.subscriptions.list({ nextLink });
-                allSubscriptions = allSubscriptions.concat(response.data);
-                nextLink = response.nextLink;
-                console.log(response)
-            } while (nextLink);
-          
-            return allSubscriptions;
-        }
-        console.log('Subscriptions: ', fetchAllSubscriptions());
+        // console.log('Subscriptions: ', fetchAllSubscriptions());
 
     // console.log('Subscription: ', subscription)
             // try {
