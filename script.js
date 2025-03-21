@@ -72,18 +72,16 @@ app.post('/cancel-subscription', async (req, res) => {
         const transaction = await paddle.transactions.get(userDoc.data().tid);
         
         try {
-            const response = await paddle.subscriptions.cancel(transaction.subscriptionId);
+            await paddle.subscriptions.cancel(transaction.subscriptionId, {
+                effectiveFrom: 'immediately',
+            })
+            await userDocRef.set({
+                tid: null,
+                plan: 'lite',
+                pageview: getObj(),
+            }, { merge: true });
             
-            if (response.success) {
-                await userDocRef.set({
-                    tid: null,
-                    plan: 'lite',
-                    pageview: getObj(),
-                }, { merge: true });
-                
-                res.status(200).send('Subscription canceled successfully');
-            }
-            else res.status(500).send('Failed to cancel subscription');
+            res.status(200).send('Subscription canceled successfully');
         }
         catch (error) {
             console.error('Error canceling subscription: ', error);
