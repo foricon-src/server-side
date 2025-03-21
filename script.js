@@ -8,7 +8,9 @@ const { Paddle } = require('@paddle/paddle-node-sdk');
 const sandbox = true;
 
 const paddleAPIKey = sandbox ? '18f86afd453c26b72a48e422a908354e58e7a33d50767fd174' : 'e16469f750c345ea031f3d3275c1fd9dba1c41cf702c75a35f';
-const paddle = new Paddle(paddleAPIKey);
+const paddle = new Paddle(paddleAPIKey, {
+    environment: sandbox ? 'sandbox' : 'live',
+});
 const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
