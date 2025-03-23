@@ -7,7 +7,7 @@ const { Paddle } = require('@paddle/paddle-node-sdk');
 
 const sandbox = true;
 
-const paddleAPIKey = sandbox ? '18f86afd453c26b72a48e422a908354e58e7a33d50767fd174' : 'e16469f750c345ea031f3d3275c1fd9dba1c41cf702c75a35f';
+const paddleAPIKey = process.env[sandbox ? 'SANBOX_VENDOR_AUTH_CODE' : 'SANBOX_VENDOR_AUTH_CODE'];
 const paddle = new Paddle(paddleAPIKey, {
     environment: sandbox ? 'sandbox' : 'live',
 })
@@ -25,6 +25,7 @@ admin.initializeApp({
     credential: admin.credential.applicationDefault(),
 })
 const db = admin.firestore();
+const userCollection = db.collection('users');
 
 const fetch = require('node-fetch');
 
@@ -49,7 +50,7 @@ app.post('/update-plan', (req, res) => {
         const { status, custom_data, items } = payload.data;
         const { name } = items[0].price;
         const plan = name[0].toLowerCase() + name.substr(1).replace(' ', '');
-        const userDoc = db.collection('users').doc(custom_data.uid);
+        const userDoc = userCollection.doc(custom_data.uid);
         userDoc.set({
             plan: status == 'active' ? plan : 'lite',
             pageview: getObj(),
@@ -114,5 +115,31 @@ function validateRequestOrigin(req) {
         referer.startsWith(allowedOrigin) || origin.startsWith(allowedOrigin)
     )
 }
+async function checkAndSyncEmails() {
+    try {
+        // List all users in Firebase Auth
+        const users = await admin.auth().listUsers();
+  
+        // Loop through each user
+        for (const user of users.users) {
+            const { uid, email } = user;
+  
+            // Reference the Firestore document
+            const userDocRef = userCollection.doc(uid);
+  
+            const userDoc = await userDocRef.get();
+  
+            // Check if email is updated
+            if (userDoc.exists && userDoc.data().email != email) {
+                await userDocRef.update({ email }); // Update Firestore with the new email
+                console.log(`Updated email for UID: ${uid}`);
+            }
+        }
+    }
+    catch (error) {
+        console.error("Error checking and syncing emails:", error);
+    }
+}
+setInterval(checkAndSyncEmails, 60000);
 
 app.listen(3000, () => console.log('Server running on port 3000'));
