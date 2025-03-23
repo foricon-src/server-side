@@ -136,6 +136,6 @@ async function checkAndSyncEmails() {
         console.error("Error checking and syncing emails:", error);
     }
 }
-setInterval(checkAndSyncEmails, 2000);
+setInterval(checkAndSyncEmails, 10000);
 
 app.listen(3000, () => console.log('Server running on port 3000'));
