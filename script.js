@@ -116,23 +116,17 @@ function validateRequestOrigin(req) {
     )
 }
 async function checkAndSyncEmails() {
-    console.log('check');
     try {
-        // List all users in Firebase Auth
         const users = await admin.auth().listUsers();
-  
-        // Loop through each user
+        
         for (const user of users.users) {
             const { uid, email } = user;
-  
-            // Reference the Firestore document
+            
             const userDocRef = userCollection.doc(uid);
-  
             const userDoc = await userDocRef.get();
-  
-            // Check if email is updated
+            
             if (userDoc.exists && userDoc.data().email != email) {
-                await userDocRef.update({ email }); // Update Firestore with the new email
+                await userDocRef.update({ email });
                 console.log(`Updated email for UID: ${uid}`);
             }
         }
@@ -141,6 +135,6 @@ async function checkAndSyncEmails() {
         console.error("Error checking and syncing emails:", error);
     }
 }
-setInterval(checkAndSyncEmails, 10000);
+setInterval(checkAndSyncEmails, 1000);
 
 app.listen(3000, () => console.log('Server running on port 3000'));
