@@ -116,6 +116,7 @@ function validateRequestOrigin(req) {
     )
 }
 async function checkAndSyncEmails() {
+    console.log('Checked')
     try {
         const users = await admin.auth().listUsers();
         
@@ -124,8 +125,6 @@ async function checkAndSyncEmails() {
             
             const userDocRef = userCollection.doc(uid);
             const userDoc = await userDocRef.get();
-
-            ['nguyennamtiger@gmail.com', 'onemovievn@gmail.com'].includes(email) && console.log(email, userDoc.data().email);
 
             if (userDoc.exists && userDoc.data().email != email) {
                 await userDocRef.update({ email });
