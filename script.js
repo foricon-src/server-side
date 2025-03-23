@@ -125,7 +125,7 @@ async function checkAndSyncEmails() {
             
             const userDocRef = userCollection.doc(uid);
             const userDoc = await userDocRef.get();
-            
+            console.log(userDoc.data().email, email)
             if (userDoc.exists && userDoc.data().email != email) {
                 await userDocRef.update({ email });
                 console.log(`Updated email for UID: ${uid}`);
@@ -136,6 +136,6 @@ async function checkAndSyncEmails() {
         console.error("Error checking and syncing emails:", error);
     }
 }
-setInterval(checkAndSyncEmails, 5000);
+setInterval(checkAndSyncEmails, 2000);
 
 app.listen(3000, () => console.log('Server running on port 3000'));
