@@ -94,6 +94,35 @@ app.post('/cancel-subscription', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
+app.post('/send-email', async (req, res) => {
+    const { registrationToken, title, body } = req.body;
+
+    if (validateRequestOrigin(req)) {
+        if (!registrationToken || !title || !body)
+            return res.status(400).send('Missing required fields');
+    
+        const message = {
+            notification: {
+                title: title,
+                body: body,
+            },
+            token: registrationToken,
+        };
+    
+        try {
+            const response = await admin.messaging().send(message);
+            res.status(200).json(response);
+        }
+        catch (error) {
+            console.error('Error sending email:', error);
+            res.status(500).send(error.message);
+        }
+    }
+    else {
+        console.log('Unauthorized request has been blocked');
+        res.status(403).send('Request is forbidden');
+    }
+})
 
 async function verifyPaddleSignature(body, signature) {
     try {
@@ -111,31 +140,29 @@ function validateRequestOrigin(req) {
     const referer = req.headers.referer || '';
     const origin = req.headers.origin || '';
 
-    return (
-        referer.startsWith(allowedOrigin) || origin.startsWith(allowedOrigin)
-    )
+    return referer.startsWith(allowedOrigin) || origin.startsWith(allowedOrigin);
 }
-async function checkAndSyncEmails() {
-    console.log('Checked')
-    try {
-        const users = await admin.auth().listUsers();
+// async function checkAndSyncEmails() {
+//     console.log('Checked')
+//     try {
+//         const users = await admin.auth().listUsers();
         
-        for (const user of users.users) {
-            const { uid, email } = user;
+//         for (const user of users.users) {
+//             const { uid, email } = user;
             
-            const userDocRef = userCollection.doc(uid);
-            const userDoc = await userDocRef.get();
+//             const userDocRef = userCollection.doc(uid);
+//             const userDoc = await userDocRef.get();
 
-            if (userDoc.exists && userDoc.data().email != email) {
-                await userDocRef.update({ email });
-                console.log(`Updated email for UID: ${uid}`);
-            }
-        }
-    }
-    catch (error) {
-        console.error("Error checking and syncing emails:", error);
-    }
-}
-setInterval(checkAndSyncEmails, 5000);
+//             if (userDoc.exists && userDoc.data().email != email) {
+//                 await userDocRef.update({ email });
+//                 console.log(`Updated email for UID: ${uid}`);
+//             }
+//         }
+//     }
+//     catch (error) {
+//         console.error("Error checking and syncing emails:", error);
+//     }
+// }
+// setInterval(checkAndSyncEmails, 5000);
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+// app.listen(3000, () => console.log('Server running on port 3000'));
