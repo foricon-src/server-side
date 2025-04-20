@@ -94,7 +94,7 @@ app.post('/cancel-subscription', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-app.post('/send-email', async (req, res) => {
+app.post('/send-notification', async (req, res) => {
     const { registrationToken, title, body } = req.body;
 
     if (validateRequestOrigin(req)) {
