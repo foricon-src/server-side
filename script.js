@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const admin = require('firebase-admin');
 const cors = require('cors')
 const { Paddle } = require('@paddle/paddle-node-sdk');
+import { v2 as cloudinary } from 'cloudinary';
 
 const sandbox = true;
 
@@ -26,6 +27,14 @@ admin.initializeApp({
 })
 const db = admin.firestore();
 const userCollection = db.collection('users');
+
+const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
+const api_key = process.env.CLOUDINARY_API_KEY;
+const api_secret = process.env.CLOUDINARY_API_SECRET;
+
+cloudinary.config({
+    cloud_name, api_key, api_secret
+})
 
 const fetch = require('node-fetch');
 
@@ -56,14 +65,14 @@ app.post('/update-plan', (req, res) => {
             pageview: getObj(),
         }, { merge: true })
         
-        res.status(200).send('Webhook processed');
+        res.status(200).send('Webhook processed successfully');
     }
     else {
         console.log('Invalid signature');
         res.status(403).send('Invalid signature');
     }
 })
-app.post('/cancel-subscription', async (req, res) => {
+app.post('/cancel-subscription/:uid', async (req, res) => {
     const { uid } = req.body;
 
     if (validateRequestOrigin(req)) {
@@ -82,10 +91,10 @@ app.post('/cancel-subscription', async (req, res) => {
                 pageview: getObj(),
             }, { merge: true });
             
-            res.status(200).send('Subscription canceled successfully');
+            res.status(200).send('Successfully canceled subscription');
         }
         catch (error) {
-            console.error('Error canceling subscription: ', error);
+            console.error(`Error canceling subscription for ${uid}: `, error);
             res.status(500).send('Internal server error');
         }
     }
@@ -114,13 +123,71 @@ app.post('/send-notification', async (req, res) => {
             res.status(200).json(response);
         }
         catch (error) {
-            console.error('Error sending email:', error);
+            console.error('Error sending email: ', error);
             res.status(500).send(error.message);
         }
     }
     else {
         console.log('Unauthorized request has been blocked');
         res.status(403).send('Request is forbidden');
+    }
+})
+app.post('/get-signature', (req, res) => {
+    const timestamp = Math.floor(Date.now() / 1000);
+    const folder = `users/${req.body.userId}`;
+    const public_id = req.body.publicId;
+  
+    const paramsToSign = {
+      timestamp,
+      folder,
+      public_id,
+      upload_preset: 'your_signed_preset',
+    }
+  
+    const signature = crypto
+        .createHash('sha1')
+        .update(
+            Object.keys(paramsToSign)
+            .sort()
+            .map((key) => `${key}=${paramsToSign[key]}`)
+            .join('&') + api_secret
+        )
+        .digest('hex');
+  
+    res.json({
+        signature,
+        timestamp,
+        api_key,
+        folder,
+        public_id,
+        upload_preset: 'default',
+    });
+})
+app.get('/list-user-files/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const result = await cloudinary.search
+        .expression(`folder:users/${userId}`)
+        .with_field('context')
+        .max_results(100)
+        .execute();
+  
+        res.json(result.resources);
+    }
+    catch (error) {
+        console.log(`Error listing ${userId} files: `, error);
+        res.status(500).json('Internal server error');
+    }
+})
+app.post('/remove-file', async (req, res) => {
+    const { publicId } = req.body;
+    try {
+        await cloudinary.uploader.destroy(publicId);
+        res.status(200).send('Successfully removed file');
+    }
+    catch (error) {
+        console.log('Error removing Cloudinary file: ', error);
+        res.status(500).send('Internal server error');
     }
 })
 
