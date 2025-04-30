@@ -156,7 +156,7 @@ app.post('/get-signature', (req, res) => {
       timestamp,
       folder,
       public_id,
-      upload_preset: 'your_signed_preset',
+      upload_preset: 'default',
     }
   
     const signature = crypto
