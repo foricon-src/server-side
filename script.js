@@ -1,9 +1,9 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const crypto = require('crypto');
-const admin = require('firebase-admin');
-const cors = require('cors')
-const { Paddle } = require('@paddle/paddle-node-sdk');
+import express from 'express';
+import { urlencoded, json } from 'body-parser';
+import { createHash } from 'crypto';
+import { initializeApp, credential as _credential, firestore, messaging } from 'firebase-admin';
+import cors from 'cors';
+import { Paddle } from '@paddle/paddle-node-sdk';
 import { v2 as cloudinary } from 'cloudinary';
 
 const sandbox = true;
@@ -13,8 +13,8 @@ const paddle = new Paddle(paddleAPIKey, {
     environment: sandbox ? 'sandbox' : 'live',
 })
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+app.use(urlencoded({ extended: true }));
+app.use(json());
 
 app.use(cors({
     origin: 'https://foricon-dev.blogspot.com',
@@ -22,10 +22,10 @@ app.use(cors({
     credentials: true,
 }))
 
-admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
+initializeApp({
+    credential: _credential.applicationDefault(),
 })
-const db = admin.firestore();
+const db = firestore();
 const userCollection = db.collection('users');
 
 const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
@@ -36,7 +36,7 @@ cloudinary.config({
     cloud_name, api_key, api_secret
 })
 
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 
 function getObj() {
     const date = new Date();
@@ -119,7 +119,7 @@ app.post('/send-notification', async (req, res) => {
         };
     
         try {
-            const response = await admin.messaging().send(message);
+            const response = await messaging().send(message);
             res.status(200).json(response);
         }
         catch (error) {
@@ -144,8 +144,7 @@ app.post('/get-signature', (req, res) => {
       upload_preset: 'your_signed_preset',
     }
   
-    const signature = crypto
-        .createHash('sha1')
+    const signature = createHash('sha1')
         .update(
             Object.keys(paramsToSign)
             .sort()
