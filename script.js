@@ -150,12 +150,13 @@ app.post('/send-notification', async (req, res) => {
 app.post('/get-signature', (req, res) => {
     const timestamp = Math.floor(Date.now() / 1000);
     const folder = `users/${req.body.uid}`;
-    const { publicId } = req.body;
+    const { public_id, display_name } = req.body;
   
     const paramsToSign = {
         timestamp,
         folder,
-        publicId,
+        public_id,
+        display_name,
         upload_preset: 'default',
     }
   
@@ -174,7 +175,8 @@ app.post('/get-signature', (req, res) => {
         timestamp,
         api_key,
         folder,
-        publicId,
+        public_id,
+        display_name,
         upload_preset: 'default',
     });
 })
