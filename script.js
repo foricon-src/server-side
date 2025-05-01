@@ -65,7 +65,10 @@ app.post('/update-plan', (req, res) => {
             pageview: getObj(),
         }, { merge: true })
         
-        res.status(200).send('Webhook processed successfully');
+        res.status(200).send({
+            success: true,
+            message: 'Webhook processed successfully',
+        })
     }
     else {
         console.log('Invalid signature');
@@ -91,11 +94,17 @@ app.post('/cancel-subscription/:uid', async (req, res) => {
                 pageview: getObj(),
             }, { merge: true });
             
-            res.status(200).send('Successfully canceled subscription');
+            res.status(200).send({
+                success: true,
+                message: 'Successfully canceled subscription',
+            })
         }
         catch (error) {
             console.error(`Error canceling subscription for ${uid}: `, error);
-            res.status(500).send(error.message);
+            res.status(500).send({
+                success: false,
+                message: error.message,
+            })
         }
     }
     else {
@@ -124,12 +133,18 @@ app.post('/send-notification', async (req, res) => {
         }
         catch (error) {
             console.error('Error sending email: ', error);
-            res.status(500).send(error.message);
+            res.status(500).send({
+                success: false,
+                message: error.message,
+            });
         }
     }
     else {
         console.log('Unauthorized request has been blocked');
-        res.status(403).send('Request is forbidden')
+        res.status(403).send({
+            success: false,
+            message: 'Request is forbidden',
+        })
     }
 })
 app.post('/get-signature', (req, res) => {
@@ -188,11 +203,17 @@ app.post('/remove-file', async (req, res) => {
         await cloudinary.uploader.destroy(publicId, {
             resource_type: type,
         })
-        res.status(200).send('Successfully removed file');
+        res.status(200).send({
+            success: true,
+            message: 'Successfully removed file',
+        })
     }
     catch (error) {
         console.log('Error removing Cloudinary file: ', error);
-        res.status(500).send(error.message);
+        res.status(500).send({
+            success: false,
+            message: error.message,
+        })
     }
 })
 
