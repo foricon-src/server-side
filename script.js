@@ -183,9 +183,11 @@ app.get('/list-user-files/:userId', async (req, res) => {
     }
 })
 app.post('/remove-file', async (req, res) => {
-    const { publicId } = req.body;
+    const { publicId, type } = req.body;
     try {
-        await cloudinary.uploader.destroy(publicId);
+        await cloudinary.uploader.destroy(publicId, {
+            resource_type: type,
+        })
         res.status(200).send('Successfully removed file');
     }
     catch (error) {
