@@ -236,7 +236,7 @@ app.post('/remove-file/:type/:publicId(*)', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-app.get('/image-transform', async (req, res) => {
+app.post('/image-transform', async (req, res) => {
     if (validateRequestOrigin(req)) {
         const { publicId, options } = req.body;
         options.secure = true;
