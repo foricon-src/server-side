@@ -210,7 +210,7 @@ app.get('/list-user-files/:userId', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-app.post('/remove-file/:type/:publicId', async (req, res) => {
+app.post('/remove-file/:type/:publicId(*)', async (req, res) => {
     if (validateRequestOrigin(req)) {
         const { type, publicId } = req.params;
     
