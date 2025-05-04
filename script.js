@@ -239,11 +239,10 @@ app.post('/remove-file/:type/:publicId(*)', async (req, res) => {
 app.get('/image-transform', async (req, res) => {
     if (validateRequestOrigin(req)) {
         const { publicId, options } = req.body;
-        const obj = { secure: true };
+        options.secure = true;
+        options.sign_url = true;
 
-        for (let option in options) obj[option] = options[option];
-
-        res.json(cloudinary.url(publicId, obj));
+        res.json(cloudinary.url(publicId, options));
     }
     else {
         console.log('Unauthorized request has been blocked');
