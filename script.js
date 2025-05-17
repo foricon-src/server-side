@@ -5,6 +5,7 @@ const admin = require('firebase-admin');
 const cors = require('cors')
 const { Paddle } = require('@paddle/paddle-node-sdk');
 const cloudinary = require('cloudinary').v2;
+const fetch = require('node-fetch');
 
 const sandbox = true;
 
@@ -35,8 +36,6 @@ const api_secret = process.env.CLOUDINARY_SECRET;
 cloudinary.config({
     cloud_name, api_key, api_secret
 })
-
-const fetch = require('node-fetch');
 
 function getObj() {
     const date = new Date();
@@ -236,7 +235,7 @@ app.post('/remove-file/:type/:publicId(*)', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-app.post('/image-transform', async (req, res) => {
+app.post('/transform', async (req, res) => {
     if (validateRequestOrigin(req)) {
         const { publicId, options } = req.body;
         options.secure = true;
