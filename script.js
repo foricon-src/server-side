@@ -264,33 +264,20 @@ app.post('/transform', async (req, res) => {
 })
 function processSVG(svgContent, glyphName) {
     const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
+
+    // Xóa toàn bộ path vô hình
     const paths = doc.getElementsByTagName('path');
-
-    for (let i = 0; i < paths.length; i++) {
+    for (let i = paths.length - 1; i >= 0; i--) {
         const pathEl = paths[i];
-        const d = pathEl.getAttribute('d') || '';
         const fill = pathEl.getAttribute('fill');
+        (!fill || fill === 'transparent' || fill === 'none' || fill === '#00000000') && pathEl.parentNode.removeChild(pathEl);
+    }
 
-        try {
-            const [minX, minY, maxX, maxY] = svgPathBbox(d);
-            const width = maxX - minX;
-            const height = maxY - minY;
-
-            // Nếu shape vô hình → thay path bằng dummy rect invisible
-            if (!fill || fill === 'transparent' || fill === 'none' || fill === '#00000000') {
-                if (width > 0 && height > 0) {
-                pathEl.setAttribute(
-                    'd',
-                    `M${minX} ${minY} H${maxX} V${maxY} H${minX} Z`
-                );
-                pathEl.setAttribute('fill', 'none');
-                pathEl.setAttribute('stroke', 'none');
-                }
-            }
-        }
-        catch (err) {
-            console.warn(`Không đọc được bbox cho path ở ${glyphName}:`, err.message);
-        }
+    // Giữ nguyên viewBox để đảm bảo bounding box không bị thay đổi
+    const svgEl = doc.getElementsByTagName('svg')[0];
+    if (svgEl) {
+        const vb = svgEl.getAttribute('viewBox');
+        vb && svgEl.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     }
 
     return new XMLSerializer().serializeToString(doc);
