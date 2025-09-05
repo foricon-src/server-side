@@ -6,6 +6,10 @@ const cors = require('cors')
 const { Paddle } = require('@paddle/paddle-node-sdk');
 const cloudinary = require('cloudinary').v2;
 const fetch = require('node-fetch');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs/promises');
+import svgtofont from 'svgtofont';
 
 const sandbox = true;
 
@@ -247,6 +251,29 @@ app.post('/transform', async (req, res) => {
         console.log('Unauthorized request has been blocked');
         res.status(403).send('Request is forbidden');
     }
+})
+app.post('/upload', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
+    const svgDir = path.resolve('uploads');
+    const fontDir = path.resolve('fonts');
+
+    fs.mkdirSync(fontDir, { recursive: true });
+
+    req.files.forEach(file => {
+        const newPath = path.join(svgDir, `${path.parse(file.originalname).name}.svg`);
+        fs.renameSync(file.path, newPath);
+    })
+
+    await svgtofont({
+        src: svgDir,
+        dist: fontDir,
+        fontName: 'Foricon Beta',
+        css: false,
+        startUnicode: 0xe000,
+        useNameAsUnicode: true,
+    })
+
+    const fontPath = path.join(fontDir, 'font.ttf');
+    res.download(fontPath);
 })
 
 async function verifyPaddleSignature(body, signature) {
