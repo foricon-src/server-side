@@ -259,22 +259,23 @@ app.post('/transform', async (req, res) => {
     }
 })
 function preprocessSVG(filePath) {
-  const svgContent = fs.readFileSync(filePath, 'utf8');
-  const $ = cheerio.load(svgContent, { xmlMode: true });
+    const svgContent = fs.readFileSync(filePath, 'utf8');
+    const $ = cheerio.load(svgContent, { xmlMode: true });
 
-  $('path, rect, circle, polygon, g').each((i, el) => {
-    const opacity = $(el).attr('opacity');
-    const display = $(el).attr('display');
-    const visibility = $(el).attr('visibility');
+    $('path, rect, circle, polygon, g').each((i, elem) => {
+        const opacity = $(elem).attr('opacity');
+        const display = $(elem).attr('display');
+        const visibility = $(elem).attr('visibility');
 
-    // Nếu shape vô hình → gán fill="none" và stroke="none"
-    if (opacity === '0' || display === 'none' || visibility === 'hidden') {
-      $(el).attr('fill', 'none');
-      $(el).attr('stroke', 'none');
-    }
-  });
+        const isHidden = opacity === '0' || display === 'none' || visibility === 'hidden';
 
-  fs.writeFileSync(filePath, $.xml());
+        if (isHidden) {
+            $(elem).attr('fill', 'none');
+            $(elem).attr('stroke', 'none');
+        }
+    })
+
+    fs.writeFileSync(filePath, $.xml());
 }
 
 app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
