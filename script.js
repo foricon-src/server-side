@@ -338,7 +338,7 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                 if (!notdefHandled) {
                     glyphStream.metadata = {
                         unicode: ['(null)'],
-                        name: '',
+                        name: '.notdef',
                     }
                 }
             }
