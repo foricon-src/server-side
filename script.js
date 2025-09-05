@@ -260,24 +260,40 @@ app.post('/upload', multer({ dest: 'uploads/' }).array('icons'), async (req, res
         normalize: true,
         fontHeight: 1000,
         log: () => {},
-    })
+    });
 
     const svgFontPath = path.join(__dirname, 'output', 'custom-icons.svg');
     const svgFontStream = fs.createWriteStream(svgFontPath);
     fontStream.pipe(svgFontStream);
 
-    let unicodeStart = 0xE000;
+    let unicodeStart = 0xE001;
+    let notdefHandled = false;
 
     for (const file of req.files) {
-        const glyphName = path.parse(file.originalname).name;
+        const originalName = file.originalname;
+        const glyphName = path.parse(originalName).name;
+
         const glyphStream = fs.createReadStream(file.path);
-        const glyph = Object.assign(glyphStream, {
-            metadata: {
-                unicode: [String.fromCharCode(unicodeStart++)],
-                name: glyphName,
-            },
-        })
-        fontStream.write(glyph);
+
+        // Nếu tên file là ".svg" (không có tên), dùng làm glyph .notdef
+        if (!glyphName || glyphName == '') {
+            if (!notdefHandled) {
+                glyphStream.metadata = {
+                    unicode: [],
+                    name: '.notdef',
+                }
+                fontStream.write(glyphStream);
+                notdefHandled = true;
+            }
+            continue; // Bỏ qua file này sau khi đã xử lý .notdef
+        }
+
+        // Các glyph thông thường
+        glyphStream.metadata = {
+        unicode: [String.fromCharCode(unicodeStart++)],
+        name: glyphName,
+        };
+        fontStream.write(glyphStream);
     }
 
     fontStream.end();
