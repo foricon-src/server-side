@@ -11,10 +11,16 @@ const fs = require('fs');
 const path = require('path');
 const { SVGIcons2SVGFontStream } = require('svgicons2svgfont');
 const svg2ttf = require('svg2ttf');
-const cheerio = require('cheerio');
+const SVGIcons2SVGFontStream = require('svgicons2svgfont');
+const { DOMParser, XMLSerializer } = require('@xmldom/xmldom');
+const svgpath = require('svgpath');
+const bbox = require('svgpath-bbox');
 // const { Readable } = require('stream');
 
 const sandbox = true;
+
+const parser = new DOMParser();
+const serializer = new XMLSerializer();
 
 const paddleAPIKey = process.env[sandbox ? 'SANBOX_VENDOR_AUTH_CODE' : 'SANBOX_VENDOR_AUTH_CODE'];
 const paddle = new Paddle(paddleAPIKey, {
@@ -259,7 +265,7 @@ app.post('/transform', async (req, res) => {
     }
 })
 function processSVG(svgContent) {
-    const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
+    const doc = parser.parseFromString(svgContent, 'image/svg+xml');
 
     let maxX = 0, maxY = 0, minX = Infinity, minY = Infinity;
 
@@ -328,7 +334,7 @@ function processSVG(svgContent) {
 
     traverse(doc.documentElement);
 
-    const cleaned = new XMLSerializer().serializeToString(doc);
+    const cleaned = serializer.serializeToString(doc);
     const bboxResult = {
         width: maxX - minX || 0,
         height: maxY - minY || 0,
