@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const { SVGIcons2SVGFontStream } = require('svgicons2svgfont');
 const svg2ttf = require('svg2ttf');
+const cheerio = require('cheerio');
 // const { Readable } = require('stream');
 
 const sandbox = true;
@@ -257,6 +258,25 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
+function preprocessSVG(filePath) {
+  const svgContent = fs.readFileSync(filePath, 'utf8');
+  const $ = cheerio.load(svgContent, { xmlMode: true });
+
+  $('path, rect, circle, polygon, g').each((i, el) => {
+    const opacity = $(el).attr('opacity');
+    const display = $(el).attr('display');
+    const visibility = $(el).attr('visibility');
+
+    // Nếu shape vô hình → gán fill="none" và stroke="none"
+    if (opacity === '0' || display === 'none' || visibility === 'hidden') {
+      $(el).attr('fill', 'none');
+      $(el).attr('stroke', 'none');
+    }
+  });
+
+  fs.writeFileSync(filePath, $.xml());
+}
+
 app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
     try {
         const outputDir = path.join(__dirname, 'output');
@@ -264,21 +284,27 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
 
         const svgFontPath = path.join(outputDir, 'custom-icons.svg');
         const fontStream = new SVGIcons2SVGFontStream({
-            fontName: 'Foricon Beta',
+            fontName: 'custom-icons',
             normalize: true,
             fontHeight: 1000,
+            ascent: 840,
+            descent: 160,
             log: () => {},
         });
 
         const svgFontStream = fs.createWriteStream(svgFontPath);
         fontStream.pipe(svgFontStream);
 
-        let unicodeStart = 0xE000;
+        let unicodeStart = 0xE001;
         let notdefHandled = false;
 
         for (const file of req.files) {
             const originalName = file.originalname;
             const glyphName = path.parse(originalName).name;
+
+            // Tiền xử lý SVG để ẩn shape vô hình
+            preprocessSVG(file.path);
+
             const glyphStream = fs.createReadStream(file.path);
 
             // Nếu tên file là ".svg" hoặc không có tên → dùng làm .notdef
@@ -287,17 +313,17 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                     glyphStream.metadata = {
                         unicode: [],
                         name: '.notdef',
-                    };
+                    }
                     fontStream.write(glyphStream);
                     notdefHandled = true;
                 }
                 continue;
             }
 
-            // Glyph thông thường
             glyphStream.metadata = {
                 unicode: [String.fromCharCode(unicodeStart++)],
                 name: glyphName,
+                advanceWidth: 644,
             }
             fontStream.write(glyphStream);
         }
@@ -309,10 +335,14 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             const ttf = svg2ttf(svgFontData, {});
             const ttfBuffer = Buffer.from(ttf.buffer);
 
-            res.setHeader('Content-Disposition', 'attachment; filename=font.ttf');
+            req.files.forEach(file => fs.unlink(file.path, () => {}));
+            fs.unlink(svgFontPath, () => {});
+
+            res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
             res.setHeader('Content-Type', 'font/ttf');
             res.send(ttfBuffer);
         })
+
         svgFontStream.on('error', (err) => {
             console.error('Lỗi ghi SVG font:', err);
             res.status(500).send('Lỗi khi tạo font SVG');
