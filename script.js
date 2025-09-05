@@ -341,8 +341,6 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                 unicode: [String.fromCharCode(unicodeStart++)],
                 name: glyphName,
             }
-
-            console.log("Add glyph:", glyphName, glyphStream.metadata);
             fontStream.write(glyphStream);
             glyphCount++;
         }
