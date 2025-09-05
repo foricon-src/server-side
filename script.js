@@ -11,7 +11,6 @@ const fs = require('fs');
 const path = require('path');
 const { SVGIcons2SVGFontStream } = require('svgicons2svgfont');
 const svg2ttf = require('svg2ttf');
-const SVGIcons2SVGFontStream = require('svgicons2svgfont');
 const { DOMParser, XMLSerializer } = require('@xmldom/xmldom');
 const svgpath = require('svgpath');
 const bbox = require('svgpath-bbox');
