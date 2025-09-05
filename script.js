@@ -9,7 +9,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import fetch from 'node-fetch';
 import multer from 'multer';
 import { resolve, join, parse } from 'path';
-import { mkdirSync, renameSync } from 'fs/promises';
+import { mkdirSync, renameSync } from 'fs';
 const svgtofont = await import('svgtofont');
 
 const { initializeApp, firestore, messaging } = admin;
