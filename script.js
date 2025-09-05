@@ -7,9 +7,11 @@ const { Paddle } = require('@paddle/paddle-node-sdk');
 const cloudinary = require('cloudinary').v2;
 const fetch = require('node-fetch');
 const multer = require('multer');
+const fs = require('fs');
 const path = require('path');
-const fs = require('fs/promises');
-const svgtofont = require('svgtofont');
+const svgicons2svgfont = require('svgicons2svgfont');
+const svg2ttf = require('svg2ttf');
+// const { Readable } = require('stream');
 
 const sandbox = true;
 
@@ -252,28 +254,43 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-app.post('/upload', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
-    const svgDir = path.resolve('uploads');
-    const fontDir = path.resolve('fonts');
-
-    fs.mkdirSync(fontDir, { recursive: true });
-
-    req.files.forEach(file => {
-        const newPath = path.join(svgDir, `${path.parse(file.originalname).name}.svg`);
-        fs.renameSync(file.path, newPath);
+app.post('/upload', upload.array('icons'), async (req, res) => {
+    const fontStream = svgicons2svgfont({
+        fontName: 'custom-icons',
+        normalize: true,
+        fontHeight: 1000,
+        log: () => {},
     })
 
-    await svgtofont({
-        src: svgDir,
-        dist: fontDir,
-        fontName: 'Foricon Beta',
-        css: false,
-        startUnicode: 0xe000,
-        useNameAsUnicode: true,
-    })
+    const svgFontPath = path.join(__dirname, 'output', 'custom-icons.svg');
+    const svgFontStream = fs.createWriteStream(svgFontPath);
+    fontStream.pipe(svgFontStream);
 
-    const fontPath = path.join(fontDir, 'font.ttf');
-    res.download(fontPath);
+    let unicodeStart = 0xE000;
+
+    for (const file of req.files) {
+        const glyphName = path.parse(file.originalname).name;
+        const glyphStream = fs.createReadStream(file.path);
+        const glyph = Object.assign(glyphStream, {
+            metadata: {
+                unicode: [String.fromCharCode(unicodeStart++)],
+                name: glyphName,
+            },
+        })
+        fontStream.write(glyph);
+    }
+
+    fontStream.end();
+
+    svgFontStream.on('finish', () => {
+        const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
+        const ttf = svg2ttf(svgFontData, {});
+        const ttfBuffer = Buffer.from(ttf.buffer);
+
+        res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
+        res.setHeader('Content-Type', 'font/ttf');
+        res.send(ttfBuffer);
+    })
 })
 
 async function verifyPaddleSignature(body, signature) {
