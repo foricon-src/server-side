@@ -258,50 +258,42 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-function isOutsideClip(shape, clipBox) {
-    const x = parseFloat(shape.attr('x')) || 0;
-    const y = parseFloat(shape.attr('y')) || 0;
-    const width = parseFloat(shape.attr('width')) || 0;
-    const height = parseFloat(shape.attr('height')) || 0;
+function stripInvisibleShapes(svgContent) {
+    const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
-    return (
-        x + width < clipBox.x ||
-        x > clipBox.x + clipBox.width ||
-        y + height < clipBox.y ||
-        y > clipBox.y + clipBox.height
-    )
-}
-function preprocessSVGWithClip(filePath) {
-    const svgContent = fs.readFileSync(filePath, 'utf8');
-    const $ = cheerio.load(svgContent, { xmlMode: true });
+    function processNode(node) {
+        if (!node.getAttribute) return;
 
-    const clipRect = $('clipPath rect');
-    if (!clipRect.length) return;
+        const fill = node.getAttribute('fill');
+        const stroke = node.getAttribute('stroke');
+        const opacity = node.getAttribute('opacity');
+        const display = node.getAttribute('display');
+        const visibility = node.getAttribute('visibility');
 
-    const clipBox = {
-        x: parseFloat(clipRect.attr('x')) || 0,
-        y: parseFloat(clipRect.attr('y')) || 0,
-        width: parseFloat(clipRect.attr('width')) || 0,
-        height: parseFloat(clipRect.attr('height')) || 0,
+        const invisible =
+        (fill === 'none' || fill === 'transparent') &&
+        (!stroke || stroke === 'none') &&
+        (!opacity || opacity === '0') &&
+        (display === 'none' || visibility === 'hidden');
+
+        if (invisible) {
+            // Nếu là path thì biến thành điểm trống
+            if (node.tagName === 'path') {
+                node.setAttribute('d', 'M0 0');
+            }
+            // Nếu là rect / circle / ellipse thì bỏ hẳn
+            if (['rect', 'circle', 'ellipse'].includes(node.tagName)) {
+                node.parentNode.removeChild(node);
+            }
+        }
+
+        if (node.childNodes)
+            for (let i = 0; i < node.childNodes.length; i++)
+                processNode(node.childNodes[i]);
     }
 
-    $('path, rect, circle, ellipse, polygon, polyline').each((i, el) => {
-        const shape = $(el);
-        const parent = shape.closest('g');
-
-        if (parent.attr('clip-path') && isOutsideClip(shape, clipBox)) {
-            if (shape.attr('d')) shape.attr('d', '');
-            if (shape.attr('points')) shape.attr('points', '');
-            shape.attr('width', '0');
-            shape.attr('height', '0');
-            shape.attr('r', '0');
-            shape.attr('rx', '0');
-            shape.attr('ry', '0');
-        }
-    })
-
-    $('clipPath').remove();
-    fs.writeFileSync(filePath, $.xml());
+    processNode(doc.documentElement);
+    return new XMLSerializer().serializeToString(doc);
 }
 app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
     try {
@@ -321,16 +313,19 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
         const svgFontStream = fs.createWriteStream(svgFontPath);
         fontStream.pipe(svgFontStream);
 
-        let unicodeStart = 0xE000;
+        let unicodeStart = 0xe000;
         let notdefHandled = false;
 
         for (const file of req.files) {
             const originalName = file.originalname;
             const glyphName = path.parse(originalName).name;
 
-            preprocessSVGWithClip(file.path); // xử lý clipPath
+            let svgContent = fs.readFileSync(file.path, 'utf8');
+            svgContent = stripInvisibleShapes(svgContent);
 
-            const glyphStream = fs.createReadStream(file.path);
+            const glyphStream = new stream.Readable();
+            glyphStream.push(svgContent);
+            glyphStream.push(null);
 
             if (!glyphName || glyphName === '') {
                 if (!notdefHandled) {
@@ -345,9 +340,9 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             }
 
             glyphStream.metadata = {
-                unicode: [String.fromCharCode(unicodeStart++)],
-                name: glyphName,
-                advanceWidth: 644,
+            unicode: [String.fromCharCode(unicodeStart++)],
+            name: glyphName,
+            advanceWidth: 644,
             };
             fontStream.write(glyphStream);
         }
@@ -355,21 +350,25 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
         fontStream.end();
 
         svgFontStream.on('finish', () => {
-        const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
-        const ttf = svg2ttf(svgFontData, {});
-        const ttfBuffer = Buffer.from(ttf.buffer);
+            const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
+            const ttf = svg2ttf(svgFontData, {});
+            const ttfBuffer = Buffer.from(ttf.buffer);
 
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-        fs.unlink(svgFontPath, () => {});
+            // Xoá file tạm
+            req.files.forEach((file) => fs.unlink(file.path, () => {}));
+            fs.unlink(svgFontPath, () => {});
 
-        res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
-        res.setHeader('Content-Type', 'font/ttf');
-        res.send(ttfBuffer);
+            res.setHeader(
+                'Content-Disposition',
+                'attachment; filename=custom-icons.ttf'
+            )
+            res.setHeader('Content-Type', 'font/ttf');
+            res.send(ttfBuffer);
         });
 
         svgFontStream.on('error', (err) => {
-        console.error('Lỗi ghi SVG font:', err);
-        res.status(500).send('Lỗi khi tạo font SVG');
+            console.error('Lỗi ghi SVG font:', err);
+            res.status(500).send('Lỗi khi tạo font SVG');
         });
     } catch (err) {
         console.error('Lỗi xử lý font:', err);
