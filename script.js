@@ -1,5 +1,5 @@
 import express from 'express';
-import { urlencoded, json } from 'body-parser';
+import bodyParser from 'body-parser';
 import { createHash } from 'crypto';
 // import { initializeApp, credential as _credential, firestore, messaging } from 'firebase-admin';
 import admin from 'firebase-admin';
@@ -14,6 +14,8 @@ const svgtofont = await import('svgtofont');
 
 const { initializeApp, firestore, messaging } = admin;
 const _credential = admin.credential;
+
+const { urlencoded, json } = bodyParser;
 
 const sandbox = true;
 
