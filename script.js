@@ -338,7 +338,7 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             if (!glyphName || glyphName.toLowerCase() === '.svg') {
                 if (!notdefHandled) {
                     glyphStream.metadata = {
-                        unicode: [],
+                        unicode: ['(null)'],
                         name: '(null)',
                     }
                 }
