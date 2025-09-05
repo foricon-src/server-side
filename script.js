@@ -9,7 +9,7 @@ const fetch = require('node-fetch');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const svgicons2svgfont = require('svgicons2svgfont');
+const { SVGIcons2SVGFontStream } = require('svgicons2svgfont');
 const svg2ttf = require('svg2ttf');
 // const { Readable } = require('stream');
 
@@ -258,12 +258,12 @@ app.post('/transform', async (req, res) => {
     }
 })
 app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
-    const fontStream = svgicons2svgfont({
+    const fontStream = new SVGIcons2SVGFontStream({
         fontName: 'custom-icons',
         normalize: true,
         fontHeight: 1000,
         log: () => {},
-    });
+    })
 
     const svgFontPath = path.join(__dirname, 'output', 'custom-icons.svg');
     const svgFontStream = fs.createWriteStream(svgFontPath);
