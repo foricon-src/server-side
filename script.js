@@ -289,12 +289,9 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
 
         const svgFontPath = path.join(outputDir, 'custom-icons.svg');
 
-        // 🔹 Khác biệt so với Fontello (Beta 1.7.5):
-        // - Fontello normalize + scale bounding box → giữ visual balance tự động.
-        // - Ở đây ta tắt normalize để invisible shape vẫn giữ chỗ.
         const fontStream = new SVGIcons2SVGFontStream({
             fontName: 'Foricon Beta',
-            normalize: false,       // ❌ không normalize để giữ nguyên scale + vị trí
+            normalize: false,
             fontHeight: 1000,
             ascent: 840,
             descent: 160,
@@ -306,16 +303,19 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
 
         let unicodeStart = 0xE000;
         let glyphCount = 0;
+        let notdefHandled = false;
 
         for (const file of req.files) {
             const originalName = file.originalname;
-            const glyphName = path.parse(originalName).name;
+            const glyphName = path.parse(originalName).name.trim(); // tên file không có .svg
 
-            // 🔹 Đọc nội dung SVG
+            // Đọc SVG
             let svgContent = fs.readFileSync(file.path, 'utf8');
             let doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
-            // 🔹 Bước clean invisible shapes
+            // 👉 Nếu bạn muốn giữ invisible shape thì không cần lọc fill/opacity/display nữa
+            // Nếu muốn strip thì uncomment đoạn dưới
+            /*
             const allElements = doc.getElementsByTagName('*');
             for (let i = 0; i < allElements.length; i++) {
                 const el = allElements[i];
@@ -323,23 +323,36 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                 const opacity = el.getAttribute('opacity');
                 const display = el.getAttribute('display');
 
-                if ((fill && fill.toLowerCase() === 'none') || (opacity && opacity === '0') || (display && display === 'none')) {
-                    // Giữ shape trong glyph nhưng chắc chắn không render
-                    el.setAttribute('fill', 'none');
-                    el.setAttribute('stroke', 'none');
+                if ((fill && fill.toLowerCase() === 'none') ||
+                    (opacity && opacity === '0') ||
+                    (display && display === 'none')) {
+                el.setAttribute('fill', 'none');
+                el.setAttribute('stroke', 'none');
                 }
             }
+            */
 
             svgContent = new XMLSerializer().serializeToString(doc);
 
-            // 🔹 Lưu SVG tạm sau khi clean
-            const tmpPath = path.join('uploads', `${glyphName}-cleaned.svg`);
+            // Tạo file tạm cleaned
+            const tmpPath = path.join('uploads', `${glyphName || 'unnamed'}-cleaned.svg`);
             fs.writeFileSync(tmpPath, svgContent);
 
             const glyphStream = fs.createReadStream(tmpPath);
-            glyphStream.metadata = {
-                unicode: [String.fromCharCode(unicodeStart++)],
-                name: glyphName,
+
+            if (!glyphName || glyphName.toLowerCase() === '.svg') {
+                if (!notdefHandled) {
+                    glyphStream.metadata = {
+                        unicode: [String.fromCharCode(0x0000)],
+                        name: '.notdef',
+                    }
+                }
+            }
+            else {
+                glyphStream.metadata = {
+                    unicode: [String.fromCharCode(unicodeStart++)],
+                    name: glyphName,
+                }
             }
             fontStream.write(glyphStream);
             glyphCount++;
@@ -351,12 +364,6 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             try {
                 const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
                 const ttf = svg2ttf(svgFontData, {});
-                
-                if (!ttf.glyf) console.error("Không có glyph nào được generate từ SVG font!");
-                else {
-                    const glyphNames = ttf.glyf.map(g => g?.name).filter(Boolean);
-                    console.log("Glyphs:", glyphNames.length, glyphNames);
-                }
 
                 const ttfBuffer = Buffer.from(ttf.buffer);
                 res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
@@ -364,17 +371,23 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                 res.send(ttfBuffer);
             }
             catch (err) {
-                console.error("Lỗi khi chuyển SVG sang TTF:", err);
-                res.status(500).send("Font build error");
+                console.error('Lỗi khi chuyển SVG sang TTF:', err);
+                res.status(500).send('Font build error');
             }
         })
-        svgFontStream.on('error', (err) => {
-            console.error("❌ Lỗi khi ghi font SVG:", err);
-            res.status(500).send("Lỗi khi tạo font SVG");
+        svgFontStream.on('error', (error) => {
+            console.error('Lỗi khi ghi font SVG:', error);
+            res.status(500).send({
+                success: false,
+                message: error.message,
+            })
         })
-    } catch (err) {
-        console.error("❌ Lỗi server:", err);
-        res.status(500).send("Lỗi server");
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            success: false,
+            message: error.message,
+        })
     }
 })
 
