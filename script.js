@@ -257,59 +257,70 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
-    const fontStream = new SVGIcons2SVGFontStream({
-        fontName: 'custom-icons',
-        normalize: true,
-        fontHeight: 1000,
-        log: () => {},
-    })
+app.post('/create-font', upload.array('icons'), async (req, res) => {
+    try {
+        const outputDir = path.join(__dirname, 'output');
+        !fs.existsSync(outputDir) && fs.mkdirSync(outputDir, { recursive: true });
 
-    const svgFontPath = path.join(__dirname, 'output', 'custom-icons.svg');
-    const svgFontStream = fs.createWriteStream(svgFontPath);
-    fontStream.pipe(svgFontStream);
+        const svgFontPath = path.join(outputDir, 'custom-icons.svg');
+        const fontStream = new SVGIcons2SVGFontStream({
+            fontName: 'Foricon Beta',
+            normalize: true,
+            fontHeight: 1000,
+            log: () => {},
+        });
 
-    let unicodeStart = 0xE001;
-    let notdefHandled = false;
+        const svgFontStream = fs.createWriteStream(svgFontPath);
+        fontStream.pipe(svgFontStream);
 
-    for (const file of req.files) {
-        const originalName = file.originalname;
-        const glyphName = path.parse(originalName).name;
+        let unicodeStart = 0xE000;
+        let notdefHandled = false;
 
-        const glyphStream = fs.createReadStream(file.path);
+        for (const file of req.files) {
+            const originalName = file.originalname;
+            const glyphName = path.parse(originalName).name;
+            const glyphStream = fs.createReadStream(file.path);
 
-        // Nếu tên file là ".svg" (không có tên), dùng làm glyph .notdef
-        if (!glyphName || glyphName == '') {
-            if (!notdefHandled) {
-                glyphStream.metadata = {
-                    unicode: [],
-                    name: '.notdef',
+            // Nếu tên file là ".svg" hoặc không có tên → dùng làm .notdef
+            if (!glyphName || glyphName === '') {
+                if (!notdefHandled) {
+                    glyphStream.metadata = {
+                        unicode: [],
+                        name: '.notdef',
+                    };
+                    fontStream.write(glyphStream);
+                    notdefHandled = true;
                 }
-                fontStream.write(glyphStream);
-                notdefHandled = true;
+                continue;
             }
-            continue; // Bỏ qua file này sau khi đã xử lý .notdef
+
+            // Glyph thông thường
+            glyphStream.metadata = {
+                unicode: [String.fromCharCode(unicodeStart++)],
+                name: glyphName,
+            }
+            fontStream.write(glyphStream);
         }
 
-        // Các glyph thông thường
-        glyphStream.metadata = {
-        unicode: [String.fromCharCode(unicodeStart++)],
-        name: glyphName,
-        };
-        fontStream.write(glyphStream);
+        fontStream.end();
+
+        svgFontStream.on('finish', () => {
+            const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
+            const ttf = svg2ttf(svgFontData, {});
+            const ttfBuffer = Buffer.from(ttf.buffer);
+
+            res.setHeader('Content-Disposition', 'attachment; filename=font.ttf');
+            res.setHeader('Content-Type', 'font/ttf');
+            res.send(ttfBuffer);
+        })
+        svgFontStream.on('error', (err) => {
+            console.error('Lỗi ghi SVG font:', err);
+            res.status(500).send('Lỗi khi tạo font SVG');
+        })
+    } catch (err) {
+        console.error('Lỗi xử lý font:', err);
+        res.status(500).send('Lỗi server');
     }
-
-    fontStream.end();
-
-    svgFontStream.on('finish', () => {
-        const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
-        const ttf = svg2ttf(svgFontData, {});
-        const ttfBuffer = Buffer.from(ttf.buffer);
-
-        res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
-        res.setHeader('Content-Type', 'font/ttf');
-        res.send(ttfBuffer);
-    })
 })
 
 async function verifyPaddleSignature(body, signature) {
