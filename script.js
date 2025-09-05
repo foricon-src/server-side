@@ -348,31 +348,30 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
         fontStream.end();
 
         svgFontStream.on('finish', () => {
-        console.log("✅ SVG font generated");
-        const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
+            try {
+                const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
+                const ttf = svg2ttf(svgFontData, {});
+                
+                if (!ttf.glyf) console.error("Không có glyph nào được generate từ SVG font!");
+                else {
+                    const glyphNames = ttf.glyf.map(g => g?.name).filter(Boolean);
+                    console.log("Glyphs:", glyphNames.length, glyphNames);
+                }
 
-        // 🔹 Chuyển sang TTF
-        const ttf = svg2ttf(svgFontData, {});
-        const ttfBuffer = Buffer.from(ttf.buffer);
-
-        // Đếm glyphs trong TTF để so sánh
-        const glyphNames = ttf.glyf.map(g => g?.name).filter(Boolean);
-        console.log(`📊 Glyphs expected: ${glyphCount}, in TTF: ${glyphNames.length}`);
-        console.log("📌 First 10 glyphs:", glyphNames.slice(0, 10));
-
-        // 🔹 Xoá file tạm
-        req.files.forEach(file => fs.unlink(file.path, () => {}));
-        fs.unlink(svgFontPath, () => {});
-
-        res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
-            res.setHeader('Content-Type', 'font/ttf');
-            res.send(ttfBuffer);
-        });
-
+                const ttfBuffer = Buffer.from(ttf.buffer);
+                res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
+                res.setHeader('Content-Type', 'font/ttf');
+                res.send(ttfBuffer);
+            }
+            catch (err) {
+                console.error("Lỗi khi chuyển SVG sang TTF:", err);
+                res.status(500).send("Font build error");
+            }
+        })
         svgFontStream.on('error', (err) => {
             console.error("❌ Lỗi khi ghi font SVG:", err);
             res.status(500).send("Lỗi khi tạo font SVG");
-        });
+        })
     } catch (err) {
         console.error("❌ Lỗi server:", err);
         res.status(500).send("Lỗi server");
