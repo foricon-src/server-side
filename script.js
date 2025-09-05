@@ -257,7 +257,7 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-app.post('/create-font', upload.array('icons'), async (req, res) => {
+app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
     try {
         const outputDir = path.join(__dirname, 'output');
         !fs.existsSync(outputDir) && fs.mkdirSync(outputDir, { recursive: true });
