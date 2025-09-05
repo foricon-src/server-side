@@ -319,7 +319,6 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                 const fill = el.getAttribute('fill');
                 const opacity = el.getAttribute('opacity');
                 const display = el.getAttribute('display');
-                console.log(glyphName, fill, opacity, display)
                 if ((fill && fill.toLowerCase() === 'none') ||
                     (opacity && opacity === '0') ||
                     (display && display === 'none')) {
@@ -339,7 +338,7 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                 if (!notdefHandled) {
                     glyphStream.metadata = {
                         unicode: ['(null)'],
-                        name: '(null)',
+                        name: '',
                     }
                 }
             }
