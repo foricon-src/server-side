@@ -313,28 +313,23 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             let svgContent = fs.readFileSync(file.path, 'utf8');
             let doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
-            // 👉 Nếu bạn muốn giữ invisible shape thì không cần lọc fill/opacity/display nữa
-            // Nếu muốn strip thì uncomment đoạn dưới
-            /*
             const allElements = doc.getElementsByTagName('*');
             for (let i = 0; i < allElements.length; i++) {
                 const el = allElements[i];
                 const fill = el.getAttribute('fill');
                 const opacity = el.getAttribute('opacity');
                 const display = el.getAttribute('display');
-
+                console.log(glyphName, el, fill, opacity, display)
                 if ((fill && fill.toLowerCase() === 'none') ||
                     (opacity && opacity === '0') ||
                     (display && display === 'none')) {
-                el.setAttribute('fill', 'none');
-                el.setAttribute('stroke', 'none');
+                    el.setAttribute('fill', 'none');
+                    el.setAttribute('stroke', 'none');
                 }
             }
-            */
 
             svgContent = new XMLSerializer().serializeToString(doc);
 
-            // Tạo file tạm cleaned
             const tmpPath = path.join('uploads', `${glyphName || 'unnamed'}-cleaned.svg`);
             fs.writeFileSync(tmpPath, svgContent);
 
