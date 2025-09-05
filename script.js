@@ -262,10 +262,43 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
+function processSVG(svgContent, glyphName) {
+    const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
+    const paths = doc.getElementsByTagName('path');
+
+    for (let i = 0; i < paths.length; i++) {
+        const pathEl = paths[i];
+        const d = pathEl.getAttribute('d') || '';
+        const fill = pathEl.getAttribute('fill');
+
+        try {
+            const [minX, minY, maxX, maxY] = svgPathBbox(d);
+            const width = maxX - minX;
+            const height = maxY - minY;
+
+            // Nếu shape vô hình → thay path bằng dummy rect invisible
+            if (!fill || fill === 'transparent' || fill === 'none' || fill === '#00000000') {
+                if (width > 0 && height > 0) {
+                pathEl.setAttribute(
+                    'd',
+                    `M${minX} ${minY} H${maxX} V${maxY} H${minX} Z`
+                );
+                pathEl.setAttribute('fill', 'none');
+                pathEl.setAttribute('stroke', 'none');
+                }
+            }
+        }
+        catch (err) {
+            console.warn(`Không đọc được bbox cho path ở ${glyphName}:`, err.message);
+        }
+    }
+
+    return new XMLSerializer().serializeToString(doc);
+}
 app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
     try {
         const outputDir = path.join(__dirname, 'output');
-        !fs.existsSync(outputDir) &&fs.mkdirSync(outputDir, { recursive: true });
+        !fs.existsSync(outputDir) && fs.mkdirSync(outputDir, { recursive: true });
 
         const svgFontPath = path.join(outputDir, 'custom-icons.svg');
         const fontStream = new SVGIcons2SVGFontStream({
@@ -275,7 +308,7 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             ascent: 840,
             descent: 160,
             log: () => {},
-        });
+        })
 
         const svgFontStream = fs.createWriteStream(svgFontPath);
         fontStream.pipe(svgFontStream);
@@ -283,48 +316,25 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
         let unicodeStart = 0xe000;
         let notdefHandled = false;
 
-            for (const file of req.files) {
+        for (const file of req.files) {
             const originalName = file.originalname;
             const glyphName = path.parse(originalName).name;
             let svgContent = fs.readFileSync(file.path, 'utf8');
 
-            // 🛠 Parse SVG để xử lý shape vô hình
-            const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
-
-            const paths = doc.getElementsByTagName('path');
-            for (let i = 0; i < paths.length; i++) {
-                const pathEl = paths[i];
-                const d = pathEl.getAttribute('d') || '';
-
-                // Tính bbox để giữ khoảng trống nếu path bị ẩn
-                try {
-                const [minX, minY, maxX, maxY] = svgPathBbox(d);
-                if (maxX - minX > 0 && maxY - minY > 0) {
-                    // Nếu path có fill nhưng là invisible thì set fill="none"
-                    const fill = pathEl.getAttribute('fill');
-                    if (!fill || fill === 'transparent' || fill === 'none' || fill === '#00000000') {
-                    pathEl.setAttribute('fill', 'none');
-                    }
-                }
-                } catch (err) {
-                console.warn(`Không đọc được bbox cho path ở ${glyphName}:`, err.message);
-                }
-            }
-
-            // Serialize lại SVG đã xử lý
-            svgContent = new XMLSerializer().serializeToString(doc);
+            // Xử lý SVG trước khi đưa vào font
+            svgContent = processSVG(svgContent, glyphName);
             fs.writeFileSync(file.path, svgContent, 'utf8');
 
             const glyphStream = fs.createReadStream(file.path);
 
             if (!glyphName || glyphName === '') {
                 if (!notdefHandled) {
-                glyphStream.metadata = {
-                    unicode: [0x0000],
-                    name: '.notdef',
-                };
-                fontStream.write(glyphStream);
-                notdefHandled = true;
+                    glyphStream.metadata = {
+                        unicode: [0x0000],
+                        name: '.notdef',
+                    };
+                    fontStream.write(glyphStream);
+                    notdefHandled = true;
                 }
                 continue;
             }
@@ -332,8 +342,8 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             glyphStream.metadata = {
                 unicode: [String.fromCharCode(unicodeStart++)],
                 name: glyphName,
-                advanceWidth: 644,
-            };
+                advanceWidth: 1000, // giữ ổn định spacing
+            }
             fontStream.write(glyphStream);
         }
 
@@ -348,16 +358,19 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             req.files.forEach((file) => fs.unlink(file.path, () => {}));
             fs.unlink(svgFontPath, () => {});
 
-            res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
+            res.setHeader(
+                'Content-Disposition',
+                'attachment; filename=custom-icons.ttf'
+            );
             res.setHeader('Content-Type', 'font/ttf');
             res.send(ttfBuffer);
         })
+
         svgFontStream.on('error', (err) => {
             console.error('Lỗi ghi SVG font:', err);
             res.status(500).send('Lỗi khi tạo font SVG');
         })
-    }
-    catch (err) {
+    } catch (err) {
         console.error('Lỗi xử lý font:', err);
         res.status(500).send('Lỗi server');
     }
