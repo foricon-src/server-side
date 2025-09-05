@@ -258,10 +258,23 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-function stripInvisibleShapes(svgContent) {
+function processSVG(svgContent) {
     const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
-    function processNode(node) {
+    let maxX = 0, maxY = 0, minX = Infinity, minY = Infinity;
+
+    function updateBBoxFromPath(d) {
+        try {
+            const [x1, y1, x2, y2] = bbox(d);
+            if (x1 < minX) minX = x1;
+            if (y1 < minY) minY = y1;
+            if (x2 > maxX) maxX = x2;
+            if (y2 > maxY) maxY = y2;
+        }
+        catch (e) {}
+    }
+
+    function traverse(node) {
         if (!node.getAttribute) return;
 
         const fill = node.getAttribute('fill');
@@ -273,27 +286,55 @@ function stripInvisibleShapes(svgContent) {
         const invisible =
         (fill === 'none' || fill === 'transparent') &&
         (!stroke || stroke === 'none') &&
-        (!opacity || opacity === '0') &&
-        (display === 'none' || visibility === 'hidden');
+        (opacity === '0' || display === 'none' || visibility === 'hidden');
 
-        if (invisible) {
-            // Nếu là path thì biến thành điểm trống
-            if (node.tagName === 'path') {
-                node.setAttribute('d', 'M0 0');
-            }
-            // Nếu là rect / circle / ellipse thì bỏ hẳn
-            if (['rect', 'circle', 'ellipse'].includes(node.tagName)) {
+        if (node.tagName === 'path') {
+            const d = node.getAttribute('d');
+            d && updateBBoxFromPath(d);
+            if (invisible) {
+                // xóa path vô hình (không render)
                 node.parentNode.removeChild(node);
+                return;
+            }
+        }
+
+        if (node.tagName === 'rect') {
+            const x = parseFloat(node.getAttribute('x') || 0);
+            const y = parseFloat(node.getAttribute('y') || 0);
+            const w = parseFloat(node.getAttribute('width') || 0);
+            const h = parseFloat(node.getAttribute('height') || 0);
+            updateBBoxFromPath(`M${x},${y} h${w} v${h} h${-w} Z`);
+            if (invisible) {
+                node.parentNode.removeChild(node);
+                return;
+            }
+        }
+
+        if (node.tagName === 'circle') {
+            const cx = parseFloat(node.getAttribute('cx') || 0);
+            const cy = parseFloat(node.getAttribute('cy') || 0);
+            const r = parseFloat(node.getAttribute('r') || 0);
+            updateBBoxFromPath(`M${cx - r},${cy} a${r},${r} 0 1,0 ${r * 2},0 a${r},${r} 0 1,0 ${-r * 2},0`);
+            if (invisible) {
+                node.parentNode.removeChild(node);
+                return;
             }
         }
 
         if (node.childNodes)
             for (let i = 0; i < node.childNodes.length; i++)
-                processNode(node.childNodes[i]);
+                traverse(node.childNodes[i]);
     }
 
-    processNode(doc.documentElement);
-    return new XMLSerializer().serializeToString(doc);
+    traverse(doc.documentElement);
+
+    const cleaned = new XMLSerializer().serializeToString(doc);
+    const bboxResult = {
+        width: maxX - minX || 0,
+        height: maxY - minY || 0,
+    }
+
+    return { svg: cleaned, bbox: bboxResult };
 }
 app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
     try {
@@ -321,10 +362,10 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             const glyphName = path.parse(originalName).name;
 
             let svgContent = fs.readFileSync(file.path, 'utf8');
-            svgContent = stripInvisibleShapes(svgContent);
+            const { svg: cleaned, bbox: glyphBBox } = processSVG(svgContent);
 
             const glyphStream = new stream.Readable();
-            glyphStream.push(svgContent);
+            glyphStream.push(cleaned);
             glyphStream.push(null);
 
             if (!glyphName || glyphName === '') {
@@ -332,7 +373,7 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                     glyphStream.metadata = {
                         unicode: [0x0000],
                         name: '.notdef',
-                    };
+                    }
                     fontStream.write(glyphStream);
                     notdefHandled = true;
                 }
@@ -340,10 +381,10 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             }
 
             glyphStream.metadata = {
-            unicode: [String.fromCharCode(unicodeStart++)],
-            name: glyphName,
-            advanceWidth: 644,
-            };
+                unicode: [String.fromCharCode(unicodeStart++)],
+                name: glyphName,
+                advanceWidth: glyphBBox.width || 644, // giữ width từ bbox
+            }
             fontStream.write(glyphStream);
         }
 
@@ -354,7 +395,7 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             const ttf = svg2ttf(svgFontData, {});
             const ttfBuffer = Buffer.from(ttf.buffer);
 
-            // Xoá file tạm
+            // Xóa file tạm
             req.files.forEach((file) => fs.unlink(file.path, () => {}));
             fs.unlink(svgFontPath, () => {});
 
@@ -364,13 +405,14 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             )
             res.setHeader('Content-Type', 'font/ttf');
             res.send(ttfBuffer);
-        });
+        })
 
         svgFontStream.on('error', (err) => {
             console.error('Lỗi ghi SVG font:', err);
             res.status(500).send('Lỗi khi tạo font SVG');
-        });
-    } catch (err) {
+        })
+    }
+    catch (err) {
         console.error('Lỗi xử lý font:', err);
         res.status(500).send('Lỗi server');
     }
