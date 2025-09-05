@@ -9,7 +9,7 @@ const fetch = require('node-fetch');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs/promises');
-import svgtofont from 'svgtofont';
+const svgtofont = require('svgtofont');
 
 const sandbox = true;
 
