@@ -258,63 +258,86 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-function preprocessSVG(filePath) {
+function isOutsideClip(shape, clipBox) {
+    const x = parseFloat(shape.attr('x')) || 0;
+    const y = parseFloat(shape.attr('y')) || 0;
+    const width = parseFloat(shape.attr('width')) || 0;
+    const height = parseFloat(shape.attr('height')) || 0;
+
+    return (
+        x + width < clipBox.x ||
+        x > clipBox.x + clipBox.width ||
+        y + height < clipBox.y ||
+        y > clipBox.y + clipBox.height
+    )
+}
+function preprocessSVGWithClip(filePath) {
     const svgContent = fs.readFileSync(filePath, 'utf8');
     const $ = cheerio.load(svgContent, { xmlMode: true });
 
-    $('path, rect, circle, polygon, g').each((i, elem) => {
-        const opacity = $(elem).attr('opacity');
-        const display = $(elem).attr('display');
-        const visibility = $(elem).attr('visibility');
+    const clipRect = $('clipPath rect');
+    if (!clipRect.length) return;
 
-        const isHidden = opacity === '0' || display === 'none' || visibility === 'hidden';
+    const clipBox = {
+        x: parseFloat(clipRect.attr('x')) || 0,
+        y: parseFloat(clipRect.attr('y')) || 0,
+        width: parseFloat(clipRect.attr('width')) || 0,
+        height: parseFloat(clipRect.attr('height')) || 0,
+    }
 
-        if (isHidden) {
-            $(elem).attr('fill', 'none');
-            $(elem).attr('stroke', 'none');
+    $('path, rect, circle, ellipse, polygon, polyline').each((i, el) => {
+        const shape = $(el);
+        const parent = shape.closest('g');
+
+        if (parent.attr('clip-path') && isOutsideClip(shape, clipBox)) {
+            if (shape.attr('d')) shape.attr('d', '');
+            if (shape.attr('points')) shape.attr('points', '');
+            shape.attr('width', '0');
+            shape.attr('height', '0');
+            shape.attr('r', '0');
+            shape.attr('rx', '0');
+            shape.attr('ry', '0');
         }
     })
 
+    $('clipPath').remove();
     fs.writeFileSync(filePath, $.xml());
 }
-
-app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
+app.post('/create-font', upload.array('icons'), async (req, res) => {
     try {
         const outputDir = path.join(__dirname, 'output');
         !fs.existsSync(outputDir) && fs.mkdirSync(outputDir, { recursive: true });
 
         const svgFontPath = path.join(outputDir, 'custom-icons.svg');
         const fontStream = new SVGIcons2SVGFontStream({
-            fontName: 'custom-icons',
+            fontName: 'Foricon Beta',
             normalize: true,
             fontHeight: 1000,
             ascent: 840,
             descent: 160,
             log: () => {},
-        });
+        })
 
         const svgFontStream = fs.createWriteStream(svgFontPath);
         fontStream.pipe(svgFontStream);
 
-        let unicodeStart = 0xE001;
+        let unicodeStart = 0xE000;
         let notdefHandled = false;
 
         for (const file of req.files) {
             const originalName = file.originalname;
             const glyphName = path.parse(originalName).name;
 
-            // Tiền xử lý SVG để ẩn shape vô hình
-            preprocessSVG(file.path);
+            preprocessSVGWithClip(file.path); // xử lý clipPath
 
             const glyphStream = fs.createReadStream(file.path);
 
-            // Nếu tên file là ".svg" hoặc không có tên → dùng làm .notdef
             if (!glyphName || glyphName === '') {
                 if (!notdefHandled) {
                     glyphStream.metadata = {
-                        unicode: [],
+                        unicode: [0x0000],
                         name: '.notdef',
-                    }
+                    };
                     fontStream.write(glyphStream);
                     notdefHandled = true;
                 }
@@ -325,29 +348,29 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                 unicode: [String.fromCharCode(unicodeStart++)],
                 name: glyphName,
                 advanceWidth: 644,
-            }
+            };
             fontStream.write(glyphStream);
         }
 
         fontStream.end();
 
         svgFontStream.on('finish', () => {
-            const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
-            const ttf = svg2ttf(svgFontData, {});
-            const ttfBuffer = Buffer.from(ttf.buffer);
+        const svgFontData = fs.readFileSync(svgFontPath, 'utf8');
+        const ttf = svg2ttf(svgFontData, {});
+        const ttfBuffer = Buffer.from(ttf.buffer);
 
-            req.files.forEach(file => fs.unlink(file.path, () => {}));
-            fs.unlink(svgFontPath, () => {});
+        req.files.forEach(file => fs.unlink(file.path, () => {}));
+        fs.unlink(svgFontPath, () => {});
 
-            res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
-            res.setHeader('Content-Type', 'font/ttf');
-            res.send(ttfBuffer);
-        })
+        res.setHeader('Content-Disposition', 'attachment; filename=custom-icons.ttf');
+        res.setHeader('Content-Type', 'font/ttf');
+        res.send(ttfBuffer);
+        });
 
         svgFontStream.on('error', (err) => {
-            console.error('Lỗi ghi SVG font:', err);
-            res.status(500).send('Lỗi khi tạo font SVG');
-        })
+        console.error('Lỗi ghi SVG font:', err);
+        res.status(500).send('Lỗi khi tạo font SVG');
+        });
     } catch (err) {
         console.error('Lỗi xử lý font:', err);
         res.status(500).send('Lỗi server');
