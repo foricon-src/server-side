@@ -8,6 +8,7 @@
     "license": "UNLICENSED",
     "dependencies": {
         "@paddle/paddle-node-sdk": "^2.5.1",
+        "@xmldom/xmldom": "^0.8.11",
         "axios": "^1.8.4",
         "body-parser": "^1.20.3",
         "cheerio": "^1.1.2",
@@ -19,6 +20,7 @@
         "paddle": "^1.0.0",
         "svg2ttf": "^6.0.3",
         "svgicons2svgfont": "^15.0.1",
-        "svgtofont": "^6.4.0"
+        "svgtofont": "^6.4.0",
+        "xmldom": "^0.6.0"
     }
 }
