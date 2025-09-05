@@ -254,7 +254,7 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-app.post('/upload', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
+app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
     const fontStream = svgicons2svgfont({
         fontName: 'custom-icons',
         normalize: true,
