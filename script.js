@@ -1,21 +1,15 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import { createHash } from 'crypto';
-// import { initializeApp, credential as _credential, firestore, messaging } from 'firebase-admin';
-import admin from 'firebase-admin';
-import cors from 'cors';
-import { Paddle } from '@paddle/paddle-node-sdk';
-import { v2 as cloudinary } from 'cloudinary';
-import fetch from 'node-fetch';
-import multer from 'multer';
-import { resolve, join, parse } from 'path';
-import { mkdirSync, renameSync } from 'fs';
-const svgtofont = await import('svgtofont');
-
-const { initializeApp, firestore, messaging } = admin;
-const _credential = admin.credential;
-
-const { urlencoded, json } = bodyParser;
+const express = require('express');
+const bodyParser = require('body-parser');
+const crypto = require('crypto');
+const admin = require('firebase-admin');
+const cors = require('cors')
+const { Paddle } = require('@paddle/paddle-node-sdk');
+const cloudinary = require('cloudinary').v2;
+const fetch = require('node-fetch');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs/promises');
+const svgtofont = require('svgtofont');
 
 const sandbox = true;
 
@@ -24,8 +18,8 @@ const paddle = new Paddle(paddleAPIKey, {
     environment: sandbox ? 'sandbox' : 'live',
 })
 const app = express();
-app.use(urlencoded({ extended: true }));
-app.use(json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 app.use(cors({
     origin: 'https://foricon-dev.blogspot.com',
@@ -33,10 +27,10 @@ app.use(cors({
     credentials: true,
 }))
 
-initializeApp({
-    credential: _credential.applicationDefault(),
+admin.initializeApp({
+    credential: admin.credential.applicationDefault(),
 })
-const db = firestore();
+const db = admin.firestore();
 const userCollection = db.collection('users');
 
 const cloud_name = process.env.CLOUDINARY_CLOUD_NAME;
@@ -137,7 +131,7 @@ app.post('/send-notification', async (req, res) => {
         };
     
         try {
-            const response = await messaging().send(message);
+            const response = await admin.messaging().send(message);
             res.status(200).json(response);
         }
         catch (error) {
@@ -169,7 +163,8 @@ app.post('/get-signature', (req, res) => {
             upload_preset: 'default',
         }
       
-        const signature = createHash('sha1')
+        const signature = crypto
+            .createHash('sha1')
             .update(
                 Object.keys(paramsToSign)
                 .sort()
@@ -258,14 +253,14 @@ app.post('/transform', async (req, res) => {
     }
 })
 app.post('/upload', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
-    const svgDir = resolve('uploads');
-    const fontDir = resolve('fonts');
+    const svgDir = path.resolve('uploads');
+    const fontDir = path.resolve('fonts');
 
-    mkdirSync(fontDir, { recursive: true });
+    fs.mkdirSync(fontDir, { recursive: true });
 
     req.files.forEach(file => {
-        const newPath = join(svgDir, `${parse(file.originalname).name}.svg`);
-        renameSync(file.path, newPath);
+        const newPath = path.join(svgDir, `${path.parse(file.originalname).name}.svg`);
+        fs.renameSync(file.path, newPath);
     })
 
     await svgtofont({
@@ -277,7 +272,7 @@ app.post('/upload', multer({ dest: 'uploads/' }).array('icons'), async (req, res
         useNameAsUnicode: true,
     })
 
-    const fontPath = join(fontDir, 'font.ttf');
+    const fontPath = path.join(fontDir, 'font.ttf');
     res.download(fontPath);
 })
 
