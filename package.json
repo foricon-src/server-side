@@ -18,8 +18,10 @@
         "firebase-admin": "^13.2.0",
         "multer": "^2.0.2",
         "paddle": "^1.0.0",
+        "svg-path-bbox": "^2.1.0",
         "svg2ttf": "^6.0.3",
         "svgicons2svgfont": "^15.0.1",
+        "svgpath": "^2.6.0",
         "svgtofont": "^6.4.0",
         "xmldom": "^0.6.0"
     }
