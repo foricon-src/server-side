@@ -13,7 +13,6 @@ const { SVGIcons2SVGFontStream } = require('svgicons2svgfont');
 const svg2ttf = require('svg2ttf');
 const { DOMParser, XMLSerializer } = require('@xmldom/xmldom');
 const { svgPathBbox } = require('svg-path-bbox');
-const bbox = require('svgpath-bbox');
 // const { Readable } = require('stream');
 
 const sandbox = true;
@@ -263,84 +262,6 @@ app.post('/transform', async (req, res) => {
         res.status(403).send('Request is forbidden');
     }
 })
-function processSVG(svgContent) {
-    const doc = parser.parseFromString(svgContent, 'image/svg+xml');
-
-    let maxX = 0, maxY = 0, minX = Infinity, minY = Infinity;
-
-    function updateBBoxFromPath(d) {
-        try {
-            const [x1, y1, x2, y2] = bbox(d);
-            if (x1 < minX) minX = x1;
-            if (y1 < minY) minY = y1;
-            if (x2 > maxX) maxX = x2;
-            if (y2 > maxY) maxY = y2;
-        }
-        catch (e) {}
-    }
-
-    function traverse(node) {
-        if (!node.getAttribute) return;
-
-        const fill = node.getAttribute('fill');
-        const stroke = node.getAttribute('stroke');
-        const opacity = node.getAttribute('opacity');
-        const display = node.getAttribute('display');
-        const visibility = node.getAttribute('visibility');
-
-        const invisible =
-        (fill === 'none' || fill === 'transparent') &&
-        (!stroke || stroke === 'none') &&
-        (opacity === '0' || display === 'none' || visibility === 'hidden');
-
-        if (node.tagName === 'path') {
-            const d = node.getAttribute('d');
-            d && updateBBoxFromPath(d);
-            if (invisible) {
-                // xóa path vô hình (không render)
-                node.parentNode.removeChild(node);
-                return;
-            }
-        }
-
-        if (node.tagName === 'rect') {
-            const x = parseFloat(node.getAttribute('x') || 0);
-            const y = parseFloat(node.getAttribute('y') || 0);
-            const w = parseFloat(node.getAttribute('width') || 0);
-            const h = parseFloat(node.getAttribute('height') || 0);
-            updateBBoxFromPath(`M${x},${y} h${w} v${h} h${-w} Z`);
-            if (invisible) {
-                node.parentNode.removeChild(node);
-                return;
-            }
-        }
-
-        if (node.tagName === 'circle') {
-            const cx = parseFloat(node.getAttribute('cx') || 0);
-            const cy = parseFloat(node.getAttribute('cy') || 0);
-            const r = parseFloat(node.getAttribute('r') || 0);
-            updateBBoxFromPath(`M${cx - r},${cy} a${r},${r} 0 1,0 ${r * 2},0 a${r},${r} 0 1,0 ${-r * 2},0`);
-            if (invisible) {
-                node.parentNode.removeChild(node);
-                return;
-            }
-        }
-
-        if (node.childNodes)
-            for (let i = 0; i < node.childNodes.length; i++)
-                traverse(node.childNodes[i]);
-    }
-
-    traverse(doc.documentElement);
-
-    const cleaned = serializer.serializeToString(doc);
-    const bboxResult = {
-        width: maxX - minX || 0,
-        height: maxY - minY || 0,
-    }
-
-    return { svg: cleaned, bbox: bboxResult };
-}
 app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req, res) => {
     try {
         const outputDir = path.join(__dirname, 'output');
