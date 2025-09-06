@@ -289,8 +289,6 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
 
         const svgFontPath = path.join(outputDir, 'custom-icons.svg');
 
-        console.log(svgFontPath)
-
         const fontStream = new SVGIcons2SVGFontStream({
             fontName: 'Foricon Beta',
             normalize: false,
@@ -313,10 +311,11 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             let svgContent = fs.readFileSync(file.path, 'utf8');
             const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
+            doc.getElementsByTagName('defs').forEach(each => each.remove());
+
             svgContent = new XMLSerializer().serializeToString(doc);
 
             const tmpPath = path.join('uploads', `${glyphName || 'unnamed'}-cleaned.svg`);
-            console.log(svgContent);
             fs.writeFileSync(tmpPath, svgContent);
 
             const glyphStream = fs.createReadStream(tmpPath);
