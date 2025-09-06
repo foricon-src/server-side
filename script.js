@@ -311,7 +311,7 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             let svgContent = fs.readFileSync(file.path, 'utf8');
             const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
-            Array.from(doc.getElementsByTagName('defs')).forEach(each => each.remove());
+            Array.from(doc.getElementsByTagName('defs')).forEach(each => each.parentNode.removeChild(each));
 
             svgContent = new XMLSerializer().serializeToString(doc);
 
