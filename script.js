@@ -289,6 +289,8 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
 
         const svgFontPath = path.join(outputDir, 'custom-icons.svg');
 
+        console.log(svgFontPath)
+
         const fontStream = new SVGIcons2SVGFontStream({
             fontName: 'Foricon Beta',
             normalize: false,
@@ -311,33 +313,10 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             let svgContent = fs.readFileSync(file.path, 'utf8');
             const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
-            const allElements = doc.getElementsByTagName('*');
-            for (let i = 0; i < allElements.length; i++) {
-                const el = allElements[i];
-                const fill = el.getAttribute('fill');
-                const opacity = el.getAttribute('opacity');
-                const display = el.getAttribute('display');
-
-                if ((fill && fill.toLowerCase() === 'none') ||
-                    (opacity && opacity === '0') ||
-                    (display && display === 'none')) {
-                    
-                    const parent = el.parentNode;
-                    if (parent) {
-                        // Xóa node vô hình
-                        parent.removeChild(el);
-
-                        // Thêm dummy path rỗng để giữ chỗ
-                        const dummy = doc.createElement('path');
-                        dummy.setAttribute('d', '');
-                        parent.appendChild(dummy);
-                    }
-                }
-            }
-
             svgContent = new XMLSerializer().serializeToString(doc);
 
             const tmpPath = path.join('uploads', `${glyphName || 'unnamed'}-cleaned.svg`);
+            console.log(svgContent);
             fs.writeFileSync(tmpPath, svgContent);
 
             const glyphStream = fs.createReadStream(tmpPath);
