@@ -308,7 +308,7 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
             const originalName = file.originalname;
             const glyphName = path.parse(originalName).name.trim(); // tên file không có .svg
 
-            const svgContent = fs.readFileSync(file.path, 'utf8');
+            let svgContent = fs.readFileSync(file.path, 'utf8');
             const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
             const allElements = doc.getElementsByTagName('*');
