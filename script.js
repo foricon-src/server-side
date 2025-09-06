@@ -303,27 +303,27 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
 
         let unicodeStart = 0xE000;
         let glyphCount = 0;
-        let notdefHandled = false;
 
         for (const file of req.files) {
             const originalName = file.originalname;
             const glyphName = path.parse(originalName).name.trim(); // tên file không có .svg
 
-            // Đọc SVG
-            let svgContent = fs.readFileSync(file.path, 'utf8');
-            let doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
+            const svgContent = fs.readFileSync(file.path, 'utf8');
+            const doc = new DOMParser().parseFromString(svgContent, 'image/svg+xml');
 
             const allElements = doc.getElementsByTagName('*');
             for (let i = 0; i < allElements.length; i++) {
-                const el = allElements[i];
-                const fill = el.getAttribute('fill');
-                const opacity = el.getAttribute('opacity');
-                const display = el.getAttribute('display');
+                const elem = allElements[i];
+                const fill = elem.getAttribute('fill');
+                const opacity = elem.getAttribute('opacity');
+                const display = elem.getAttribute('display');
+
                 if ((fill && fill.toLowerCase() === 'none') ||
                     (opacity && opacity === '0') ||
                     (display && display === 'none')) {
-                    el.setAttribute('fill', 'none');
-                    el.setAttribute('stroke', 'none');
+                    elem.setAttribute('d', '');
+                    elem.removeAttribute('fill');
+                    elem.removeAttribute('stroke');
                 }
             }
 
@@ -334,19 +334,9 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
 
             const glyphStream = fs.createReadStream(tmpPath);
 
-            if (!glyphName || glyphName.toLowerCase() === '.svg') {
-                if (!notdefHandled) {
-                    glyphStream.metadata = {
-                        unicode: ['(null)'],
-                        name: '.notdef',
-                    }
-                }
-            }
-            else {
-                glyphStream.metadata = {
-                    unicode: [String.fromCharCode(unicodeStart++)],
-                    name: glyphName,
-                }
+            glyphStream.metadata = {
+                unicode: [String.fromCharCode(unicodeStart++)],
+                name: glyphName,
             }
             fontStream.write(glyphStream);
             glyphCount++;
