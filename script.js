@@ -322,13 +322,16 @@ app.post('/create-font', multer({ dest: 'uploads/' }).array('icons'), async (req
                     (opacity && opacity === '0') ||
                     (display && display === 'none')) {
                     
-                    // Xóa node gốc
-                    el.parentNode.removeChild(el);
+                    const parent = el.parentNode;
+                    if (parent) {
+                        // Xóa node vô hình
+                        parent.removeChild(el);
 
-                    // Thêm một path rỗng để giữ bounding box
-                    const dummy = doc.createElement('path');
-                    dummy.setAttribute('d', '');
-                    el.parentNode.appendChild(dummy);
+                        // Thêm dummy path rỗng để giữ chỗ
+                        const dummy = doc.createElement('path');
+                        dummy.setAttribute('d', '');
+                        parent.appendChild(dummy);
+                    }
                 }
             }
 
